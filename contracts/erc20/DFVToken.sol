@@ -7,9 +7,12 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "../library/DecimalMath.sol";
 import "../interface/IAggregator.sol";
-contract DFVToken is Ownable {
+import "../interface/IAddressRelation.sol";
+contract DFVToken is Ownable,Initializable {
+    
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -49,7 +52,9 @@ contract DFVToken is Ownable {
     uint256 public _totalStakingPower;
     mapping(address => UserInfo) public userInfo;
 
+    address public _addressRelation;
     address public operatorAddress;
+    
 
     struct UserInfo {
         uint128 stakingPower;
@@ -90,14 +95,16 @@ contract DFVToken is Ownable {
     }
     // ============ Constructor ============
 
-    constructor(
+    initialize(
         address aggregator,
         address dftToken,
-        address dftTeam
-    )  {
+        address dftTeam,
+        address addressRelation
+    )  public initializer{
         _aggregator = aggregator;
         _dftToken = dftToken;
         _dftTeam = dftTeam;
+        _addressRelation = addressRelation;
     }
 
     // ============ Ownable Functions ============`
@@ -128,32 +135,17 @@ contract DFVToken is Ownable {
     }
 
     // ============ Mint & Redeem & Donate ============
-    function mintToUser(uint256 dftAmount, address to, address superiorAddress) external onlyOperator {
+    function mintToUser(uint256 dftAmount, address to) external onlyOperator {
+        require(dftAmount > 0, "DFVToken: must mint greater than 0");
+        UserInfo storage user = userInfo[to];
         require(
-            superiorAddress != address(0) && superiorAddress != to,
+            user.superior != address(0) && user.superior != to,
             "DFVToken: Superior INVALID"
         );
-        require(dftAmount > 0, "DFVToken: must mint greater than 0");
-
-        UserInfo storage user = userInfo[to];
-
-        if (user.superior == address(0)) {
-            require(
-                superiorAddress == _dftTeam || 
-                (userInfo[superiorAddress].superior != address(0) && balanceOf(superiorAddress) >= 1),
-                "DFVToken: INVALID_SUPERIOR_ADDRESS"
-            );
-            user.superior = superiorAddress;
-        }
-
         _updateAlpha();
-      
         IERC20(_dftToken).safeTransferFrom(msg.sender, address(this), dftAmount);
-        
         uint256 newStakingPower = DecimalMath.divFloor(dftAmount, alpha);
-
         _mint(user, newStakingPower);
-
         emit MintDFV(to, user.superior, dftAmount);
     }
 
@@ -162,7 +154,7 @@ contract DFVToken is Ownable {
             superiorAddress != address(0) && superiorAddress != msg.sender,
             "DFVToken: Superior INVALID"
         );
-        require(dftAmount > 0, "DFVToken: must mint greater than 0");
+        require(dftAmount > 100 * 10 ** 18, "DFVToken: must mint greater than 100");
 
         UserInfo storage user = userInfo[msg.sender];
 
@@ -174,7 +166,7 @@ contract DFVToken is Ownable {
             );
             user.superior = superiorAddress;
         }
-
+        
         _updateAlpha();
       
         IERC20(_dftToken).safeTransferFrom(msg.sender, address(this), dftAmount);
@@ -218,7 +210,6 @@ contract DFVToken is Ownable {
                 )
             );
         }
-
         emit RedeemDFV(msg.sender, dftReceive, burnDftAmount, withdrawFeeAmount);
     }
 

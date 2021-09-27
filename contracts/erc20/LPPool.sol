@@ -8,7 +8,6 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
-
 contract LPPool is Ownable {
     using SafeERC20 for IERC20;
     using Address for address;
@@ -33,7 +32,7 @@ contract LPPool is Ownable {
         string token1symbol;
     }
 
-    IERC20 public detToken;
+    address public detToken;
     
     uint256 public detTokenPerBlock;
 
@@ -44,6 +43,7 @@ contract LPPool is Ownable {
     mapping(uint256 => mapping(address => UserInfo)) public userInfo;
 
     uint256 public totalAllocPoint = 0;
+    
     uint256 public startBlock;
 
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount, uint256 profit);
@@ -56,7 +56,7 @@ contract LPPool is Ownable {
     event AddPool(address indexed user, uint256 indexed pid, address _lpToken, string name);
 
     constructor(
-        IERC20 _detToken,
+        address _detToken,
         uint256 _detTokenPerBlock,
         uint256 _startBlock
     ) {
@@ -88,7 +88,7 @@ contract LPPool is Ownable {
             uint256 lpTotalInQuoteToken
         )
     {   
-        //避免 Stack too deep, try removing local variables.
+        // Stack too deep, try removing local variables.
         uint256 copyPid = _pid;
         PoolInfo storage pool = poolInfo[copyPid];
         lpToken = address(pool.lpToken);
@@ -279,8 +279,8 @@ contract LPPool is Ownable {
     }
 
     function safeTokenTransfer(address _to, uint256 _amount) internal {
-        require(detToken.balanceOf(address(this)) >= _amount, "balance is not enough!");
-        detToken.transfer(_to, _amount);
+        require(IERC20(detToken).balanceOf(address(this)) >= _amount, "balance is not enough!");
+        IERC20(detToken).transfer(_to, _amount);
     }
     
     //1022.5436 1314503.7967
