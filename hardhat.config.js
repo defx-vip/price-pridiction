@@ -23,12 +23,12 @@ module.exports = {
     },
     bsc_test: {
       url: "https://data-seed-prebsc-2-s1.binance.org:8545/",
-      accounts: [""],
+      accounts: [],
       timeout: 60000
     },
     okex_test: {
       url: "https://exchaintestrpc.okex.org",
-      accounts: [""]
+      accounts: []
     }
   },
   solidity: {
