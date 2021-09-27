@@ -1,0 +1,33 @@
+{
+  "name": "anff-option",
+  "version": "1.0.0",
+  "description": "#### Description {**When you're done, you can delete the content in this README and update the file with details for others getting started with your repository**}",
+  "main": "hardhat.config.js",
+  "directories": {
+    "doc": "doc",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@gitee.com:honcur/anff-option.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@chainlink/contracts": "^0.1.7",
+    "@nomiclabs/hardhat-ethers": "^2.0.2",
+    "@nomiclabs/hardhat-waffle": "^2.0.1",
+    "@openzeppelin/contracts": "^4.1.0",
+    "chai": "^4.3.4",
+    "ethereum-waffle": "^3.4.0",
+    "ethers": "^5.4.4",
+    "hardhat": "^2.5.0"
+  },
+  "dependencies": {
+    "@pancakeswap-libs/sdk-v2": "^2.2.0",
+    "ethers": "^5.4.5"
+  }
+}
