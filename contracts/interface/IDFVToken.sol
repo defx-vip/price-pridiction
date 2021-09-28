@@ -7,7 +7,7 @@ interface IDFVToken {
 
     function mint(uint256 dftAmount, address superiorAddress) external;
 
-    function mintToUser(uint256 dftAmount, address account, address superiorAddress) external;
+    function mintToUser(uint256 dftAmount, address account) external;
 
     function _dftRatio() external view returns(uint256 dftRatio);
     

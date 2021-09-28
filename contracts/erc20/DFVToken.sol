@@ -3,14 +3,14 @@
 pragma solidity >=0.8.0; 
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "../library/DecimalMath.sol";
 import "../interface/IAggregator.sol";
-import "../interface/IAddressRelation.sol";
+import "../interface/IUserRelation.sol";
 contract DFVToken is Ownable,Initializable {
     
     using SafeMath for uint256;
@@ -31,7 +31,7 @@ contract DFVToken is Ownable,Initializable {
 
     // ============ Storage ============
 
-    address public immutable _dftToken;
+    address public  _dftToken;
     address public _aggregator;
     address public _dftTeam;
 
@@ -52,14 +52,13 @@ contract DFVToken is Ownable,Initializable {
     uint256 public _totalStakingPower;
     mapping(address => UserInfo) public userInfo;
 
-    address public _addressRelation;
+    address public _userRelation;
     address public operatorAddress;
     
 
     struct UserInfo {
         uint128 stakingPower;
         uint128 superiorSP;
-        address superior;
         uint256 credit;
     }
 
@@ -95,16 +94,16 @@ contract DFVToken is Ownable,Initializable {
     }
     // ============ Constructor ============
 
-    initialize(
+    function initialize(
         address aggregator,
         address dftToken,
         address dftTeam,
-        address addressRelation
-    )  public initializer{
+        address userRelation
+    )  public initializer {
         _aggregator = aggregator;
         _dftToken = dftToken;
         _dftTeam = dftTeam;
-        _addressRelation = addressRelation;
+        _userRelation = userRelation;
     }
 
     // ============ Ownable Functions ============`
@@ -138,15 +137,16 @@ contract DFVToken is Ownable,Initializable {
     function mintToUser(uint256 dftAmount, address to) external onlyOperator {
         require(dftAmount > 0, "DFVToken: must mint greater than 0");
         UserInfo storage user = userInfo[to];
+        address superior = IUserRelation(_userRelation).getSuperior(to);
         require(
-            user.superior != address(0) && user.superior != to,
+            superior != address(0) && superior != to,
             "DFVToken: Superior INVALID"
         );
         _updateAlpha();
         IERC20(_dftToken).safeTransferFrom(msg.sender, address(this), dftAmount);
         uint256 newStakingPower = DecimalMath.divFloor(dftAmount, alpha);
-        _mint(user, newStakingPower);
-        emit MintDFV(to, user.superior, dftAmount);
+        _mint(user, superior, newStakingPower);
+        emit MintDFV(to, superior, dftAmount);
     }
 
     function mint(uint256 dftAmount, address superiorAddress) public {
@@ -154,17 +154,19 @@ contract DFVToken is Ownable,Initializable {
             superiorAddress != address(0) && superiorAddress != msg.sender,
             "DFVToken: Superior INVALID"
         );
-        require(dftAmount > 100 * 10 ** 18, "DFVToken: must mint greater than 100");
+        require(dftAmount > 0, "DFVToken: must mint greater than 0");
 
         UserInfo storage user = userInfo[msg.sender];
-
-        if (user.superior == address(0)) {
+        address superior = IUserRelation(_userRelation).getSuperior(msg.sender);
+        if (superior == address(0)) {
+            superior = IUserRelation(_userRelation).getSuperior(superiorAddress);
             require(
                 superiorAddress == _dftTeam || 
-                (userInfo[superiorAddress].superior != address(0) && balanceOf(superiorAddress) >= 1),
+                (superior != address(0) && balanceOf(superiorAddress) >= 1),
                 "DFVToken: INVALID_SUPERIOR_ADDRESS"
             );
-            user.superior = superiorAddress;
+            IUserRelation(_userRelation).bindUser(msg.sender, superiorAddress);
+            superior = superiorAddress;
         }
         
         _updateAlpha();
@@ -172,10 +174,9 @@ contract DFVToken is Ownable,Initializable {
         IERC20(_dftToken).safeTransferFrom(msg.sender, address(this), dftAmount);
         
         uint256 newStakingPower = DecimalMath.divFloor(dftAmount, alpha);
+        _mint(user, superior, newStakingPower);
 
-        _mint(user, newStakingPower);
-
-        emit MintDFV(msg.sender, user.superior, dftAmount);
+        emit MintDFV(msg.sender, superior, dftAmount);
     }
 
     function redeem(uint256 DFVAmount, bool all) public balanceEnough(msg.sender, DFVAmount) {
@@ -192,8 +193,8 @@ contract DFVToken is Ownable,Initializable {
             dftAmount = DFVAmount.mul(_dftRatio);
             stakingPower = DecimalMath.divFloor(dftAmount, alpha);
         }
-
-        _redeem(user, stakingPower);
+        address superior = IUserRelation(_userRelation).getSuperior(msg.sender);
+        _redeem(user, superior, stakingPower);
 
         (uint256 dftReceive, uint256 burnDftAmount, uint256 withdrawFeeAmount) = getWithdrawResult(dftAmount);
 
@@ -348,7 +349,7 @@ contract DFVToken is Ownable,Initializable {
     }
 
     function getSuperior(address account) public view returns (address superior) {
-        return userInfo[account].superior;
+        return IUserRelation(_userRelation).getSuperior(account);
     }
 
     // ============ Internal Functions ============
@@ -362,9 +363,9 @@ contract DFVToken is Ownable,Initializable {
         _lastRewardBlock = uint32(block.number);
     }
 
-    function _mint(UserInfo storage to, uint256 stakingPower) internal {
+    function _mint(UserInfo storage to, address superiorAddress, uint256 stakingPower) internal {
         require(stakingPower < MAX_UINT112, "OVERFLOW");
-        UserInfo storage superior = userInfo[to.superior];
+        UserInfo storage superior = userInfo[superiorAddress];
         uint256 superiorIncreSP = DecimalMath.mulFloor(stakingPower, _superiorRatio);
         uint256 superiorIncreCredit = DecimalMath.mulFloor(superiorIncreSP, alpha);
 
@@ -377,7 +378,7 @@ contract DFVToken is Ownable,Initializable {
         _totalStakingPower = _totalStakingPower.add(stakingPower).add(superiorIncreSP);
     }
 
-    function _redeem(UserInfo storage from, uint256 stakingPower) internal {
+    function _redeem(UserInfo storage from, address superiorAddress,uint256 stakingPower) internal {
         from.stakingPower = uint128(uint256(from.stakingPower).sub(stakingPower));
 
         // superior decrease sp = min(stakingPower*0.1, from.superiorSP)
@@ -385,7 +386,7 @@ contract DFVToken is Ownable,Initializable {
         superiorDecreSP = from.superiorSP <= superiorDecreSP ? from.superiorSP : superiorDecreSP;
         from.superiorSP = uint128(uint256(from.superiorSP).sub(superiorDecreSP));
 
-        UserInfo storage superior = userInfo[from.superior];
+        UserInfo storage superior = userInfo[superiorAddress];
         uint256 creditSP = DecimalMath.divFloor(superior.credit, alpha);
 
         if (superiorDecreSP >= creditSP) {
@@ -415,8 +416,8 @@ contract DFVToken is Ownable,Initializable {
         UserInfo storage fromUser = userInfo[from];
         UserInfo storage toUser = userInfo[to];
 
-        _redeem(fromUser, stakingPower);
-        _mint(toUser, stakingPower);
+        _redeem(fromUser, IUserRelation(_userRelation).getSuperior(from), stakingPower);
+        _mint(toUser, IUserRelation(_userRelation).getSuperior(to), stakingPower);
 
         emit Transfer(from, to, DFVAmount);
     }
