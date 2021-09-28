@@ -269,6 +269,16 @@ contract UserRelation is Ownable,Initializable,IUserRelation {
         uint8 rewardRate;
     }
 
+    event BindToBroker(address account, address superior);
+
+    event BindUser(address account, address superior);
+
+    event ToBroker(address account);
+
+    event QuitBroker(address account);
+
+    event ChanageRewardRate(address account, uint8 rate);
+
     modifier isOperator() {
         require(operators[msg.sender], "UserRelation: not operrator");
         _;
@@ -286,6 +296,7 @@ contract UserRelation is Ownable,Initializable,IUserRelation {
         userInfo.superior = superior;
         userInfo.bind = true;
         userInfo.rewardRate = defaultRewardRate;
+        emit BindUser(user, superior);
         return true;
     }
 
@@ -298,6 +309,7 @@ contract UserRelation is Ownable,Initializable,IUserRelation {
         userInfo.superior = superior;
         userInfo.rewardRate = defaultRewardRate;
         userInfo.bind = true;
+        emit BindToBroker(msg.sender, superior);
         return true;
     }
 
@@ -312,6 +324,7 @@ contract UserRelation is Ownable,Initializable,IUserRelation {
         userInfo.bind = true;
         userInfo.superior = dftTeam;
         userInfo.rewardRate = defaultRewardRate;
+        emit ToBroker(msg.sender);
         return true;
     }
 
@@ -320,6 +333,7 @@ contract UserRelation is Ownable,Initializable,IUserRelation {
         require(userInfo.isBroker,  "UserRelation: invalid  user address");
         require(IERC20(dftToken).transfer(msg.sender, 1000 * 10 ** 18), "transferFrom error");
         userInfo.isBroker = false;
+        emit QuitBroker(msg.sender);
         return true;
     }
 
@@ -328,6 +342,7 @@ contract UserRelation is Ownable,Initializable,IUserRelation {
         require(users[user].superior == msg.sender, "UserRelation: invalid  user address" );
         UserInfo storage userInfo = users[user];
         userInfo.rewardRate = rewardRate;
+        emit ChanageRewardRate(user, rewardRate);
         return true;
     }
 

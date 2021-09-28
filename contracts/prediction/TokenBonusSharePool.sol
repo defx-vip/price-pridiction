@@ -120,6 +120,7 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
        address[] memory swapTokens = new address[](2);
        swapTokens[0] = shareToken;
        swapTokens[1] = defxToken;
+       IERC20(shareToken).approve(address(routerv2), amount);
        uint[] memory amounts = routerv2.swapExactTokensForTokens(amount, 0, swapTokens, address(this), block.timestamp.add(deadlineTime)); 
        address superior =  vToken.getSuperior(msg.sender);
        IDefxERC20(defxToken).approve(dfvToken, amounts[1]);
@@ -134,6 +135,7 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
        address[] memory swapTokens = new address[](2);
        swapTokens[0] = shareToken;
        swapTokens[1] = defxToken;
+       IERC20(shareToken).approve(address(routerv2), amount);
        uint[] memory amounts = routerv2.swapExactTokensForTokens(amount, 0, swapTokens, address(this), block.timestamp.add(deadlineTime)); 
        IDefxERC20(defxToken).transfer(msg.sender, amounts[1]);
        emit BrokerToDFT(msg.sender, amounts[1]);   

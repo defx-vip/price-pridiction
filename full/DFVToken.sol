@@ -1284,11 +1284,12 @@ contract DFVToken is Ownable,Initializable {
         operatorAddress = _operatorAddress;
     }
 
-    function getUserInfo(address userAddress)external view returns(
+    function getUserInfo(address userAddress) external view returns(
         uint128 stakingPower,
         uint128 superiorSP,
-        uint256 credit,
-        address superior
+        address superior,
+        uint256 credit
+        
     ) {
         UserInfo memory user = userInfo[userAddress];
         stakingPower = user.stakingPower;

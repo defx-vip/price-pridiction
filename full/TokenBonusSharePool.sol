@@ -616,7 +616,7 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
         } else if(isBroker1) {
             amount = relAmount.mul(70).div(100);
             treasuryAmount = treasuryAmount.add(relAmount.sub(amount));
-            superiorShares[superior]  = brokerShares[superior].add(amount);
+            brokerShares[superior]  = brokerShares[superior].add(amount);
             emit PredictionBet(source, superior, tradeAmount, relAmount, amount, 1);
         } else {
             amount = relAmount.mul(dfvRate).div(TOTAL_RATE);
