@@ -3,16 +3,20 @@ pragma solidity ^0.8.0;
 import  "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
-contract UserRelation is Ownable,Initializable {
+import "../interface/IUserRelation.sol";
+contract UserRelation is Ownable,Initializable,IUserRelation {
 
     mapping(address => UserInfo) public users;
     mapping(address => bool) public operators;
     address public dftToken;
+    address public dftTeam;
+    uint8 public defaultRewardRate;
 
     struct UserInfo {
         address superior;
-        uint8 role;
         bool bind;
+        bool isBroker;
+        uint8 rewardRate;
     }
 
     modifier isOperator() {
@@ -20,68 +24,95 @@ contract UserRelation is Ownable,Initializable {
         _;
     }
 
-    function initialize(address _dftToken) external initializer{
+    function initialize(address _dftToken, address _dftTeam) external initializer{
+        dftTeam = _dftTeam;
         dftToken = _dftToken;
+        defaultRewardRate = 20;
     }
 
-    function bindUser(address user, address superior) external isOperator returns(bool)  {
+    function bindUser(address user, address superior) external  isOperator override returns(bool)  {
         UserInfo storage userInfo = users[user];
         require(!userInfo.bind, "UserRelation: user is already bound");
         userInfo.superior = superior;
         userInfo.bind = true;
-        //userInfo.superior2 = superiorInfo.superior;
+        userInfo.rewardRate = defaultRewardRate;
         return true;
     }
 
-    function bindToBroker(address superior) external returns(bool)  {
+    function bindToBroker(address superior) external  returns(bool)  {
         UserInfo storage userInfo = users[msg.sender];
+        require(!userInfo.bind, "UserRelation: user is already bound");
         UserInfo storage superiorInfo = users[superior];
         UserInfo storage superiorInfo1 = users[superiorInfo.superior];
-        require(superiorInfo.role == 1 || superiorInfo1.role == 1, "UserRelation: superior not broker");
-        require(!userInfo.bind, "UserRelation: user is already bound");
+        require(superiorInfo.isBroker || superiorInfo1.isBroker, "UserRelation: superior not broker");
         userInfo.superior = superior;
-        if(superiorInfo.role == 1) {
-            userInfo.role = 2;
-        }
-        if(superiorInfo1.role == 1) {
-            userInfo.role = 3;
-        }
+        userInfo.rewardRate = defaultRewardRate;
         userInfo.bind = true;
         return true;
     }
 
     function toBroker() external returns(bool) {
         UserInfo storage userInfo = users[msg.sender];
-        require(!userInfo.bind,  "UserRelation: invalid  user address");
+        require(
+         !userInfo.isBroker && (userInfo.superior == address(0x0) || userInfo.superior == dftTeam), 
+         "UserRelation: invalid  user address"
+         );
         require(IERC20(dftToken).transferFrom(msg.sender, address(this), 1000 * 10 ** 18), "transferFrom error");
-        userInfo.role = 1;
+        userInfo.isBroker = true;
         userInfo.bind = true;
+        userInfo.superior = dftTeam;
+        userInfo.rewardRate = defaultRewardRate;
         return true;
     }
 
     function quitBroker() external returns(bool) {
         UserInfo storage userInfo = users[msg.sender];
-        require(userInfo.bind && userInfo.role == 1,  "UserRelation: invalid  user address");
+        require(userInfo.isBroker,  "UserRelation: invalid  user address");
         require(IERC20(dftToken).transfer(msg.sender, 1000 * 10 ** 18), "transferFrom error");
-        userInfo.role = 0;
-        userInfo.bind = false;
+        userInfo.isBroker = false;
         return true;
     }
 
-    function getUserInfo(address user) external view returns(address superior, uint8 role, bool isBind) {
-        UserInfo memory userInfo = users[user];
-        superior  = userInfo.superior;
-        role  = userInfo.role;
-        isBind =  userInfo.bind;
+    function setSubUserRewardRate(address user, uint8 rewardRate) external returns(bool) {
+        require( rewardRate <= 100 ,"UserRelation: invalid rewardRate");
+        require(users[user].superior == msg.sender, "UserRelation: invalid  user address" );
+        UserInfo storage userInfo = users[user];
+        userInfo.rewardRate = rewardRate;
+        return true;
     }
 
-    function getSuperior(address user) external view returns(address superior) {
+    function getUserInfo(address user) external override view returns(address superior, bool isBroker, bool isBind, uint8 rewardRate) {
+        UserInfo memory userInfo = users[user];
+        superior  = userInfo.superior;
+        isBroker  = userInfo.isBroker;
+        isBind =  userInfo.bind;
+        rewardRate = userInfo.rewardRate;
+    }
+
+    function getSuperior(address user) external override view returns(address superior) {
         superior = users[user].superior;
     }
 
-    
     function setOperator(address user, bool allow)external onlyOwner{
         operators[user] = allow;
     }
 
+    function setDefaultRewardRate(uint8 _defaultRewardRate)external  onlyOwner{
+        defaultRewardRate = _defaultRewardRate;
+    }
+
+    function getBrokerRole(address user) external view returns(uint8 role) {
+        UserInfo memory userInfo = users[user];
+        if(userInfo.isBroker) {
+           role = 1;
+        } else if(users[userInfo.superior].isBroker){
+           role = 2;
+        }
+    }
+
+    function getDftTeam() external view override returns(address) {
+        return dftTeam;
+    }
+
+    
 }

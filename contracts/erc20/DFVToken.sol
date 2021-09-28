@@ -33,7 +33,6 @@ contract DFVToken is Ownable,Initializable {
 
     address public  _dftToken;
     address public _aggregator;
-    address public _dftTeam;
 
     bool public _canTransfer;
 
@@ -97,12 +96,10 @@ contract DFVToken is Ownable,Initializable {
     function initialize(
         address aggregator,
         address dftToken,
-        address dftTeam,
         address userRelation
     )  public initializer {
         _aggregator = aggregator;
         _dftToken = dftToken;
-        _dftTeam = dftTeam;
         _userRelation = userRelation;
     }
 
@@ -160,6 +157,7 @@ contract DFVToken is Ownable,Initializable {
         address superior = IUserRelation(_userRelation).getSuperior(msg.sender);
         if (superior == address(0)) {
             superior = IUserRelation(_userRelation).getSuperior(superiorAddress);
+            address _dftTeam = IUserRelation(_userRelation).getDftTeam();
             require(
                 superiorAddress == _dftTeam || 
                 (superior != address(0) && balanceOf(superiorAddress) >= 1),
@@ -353,7 +351,7 @@ contract DFVToken is Ownable,Initializable {
     }
 
     // ============ Internal Functions ============
-
+  
     function _updateAlpha() internal {
         (uint256 newAlpha, uint256 curDistribution) = getLatestAlpha();
         uint256 newTotalDistribution = curDistribution.add(_totalBlockDistribution);
@@ -422,7 +420,20 @@ contract DFVToken is Ownable,Initializable {
         emit Transfer(from, to, DFVAmount);
     }
 
-     function setOperatorAddress(address _operatorAddress) external  onlyOwner {
+    function setOperatorAddress(address _operatorAddress) external  onlyOwner {
         operatorAddress = _operatorAddress;
+    }
+
+    function getUserInfo(address userAddress)external view returns(
+        uint128 stakingPower,
+        uint128 superiorSP,
+        uint256 credit,
+        address superior
+    ) {
+        UserInfo memory user = userInfo[userAddress];
+        stakingPower = user.stakingPower;
+        superiorSP = user.superiorSP;
+        credit = user.credit;
+        superior = IUserRelation(_userRelation).getSuperior(userAddress);
     }
 }

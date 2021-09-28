@@ -316,7 +316,7 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
         userRounds[msg.sender].push(currentEpoch);
         uint256 fee = betInfo.amount.mul(treasuryRate).div(TOTAL_RATE);
         betToken.approve(address(bonusSharePool), fee);
-        bonusSharePool.deposit(msg.sender, superior, fee);
+        bonusSharePool.predictionBet(msg.sender, superior, amount, fee);
         emit BetBear(msg.sender, currentEpoch, amount, betInfo.nftTokenId);
     }
 
@@ -342,7 +342,7 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
         userRounds[msg.sender].push(currentEpoch);
         uint256 fee = betInfo.amount.mul(treasuryRate).div(TOTAL_RATE); 
         betToken.approve(address(bonusSharePool), fee);
-        bonusSharePool.deposit(msg.sender, superior, fee);
+        bonusSharePool.predictionBet(msg.sender, superior, amount, fee);
         emit BetBull(msg.sender, currentEpoch, amount, betInfo.nftTokenId);
     }
 
@@ -547,7 +547,7 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
             treasuryAmt = round.totalAmount;
             uint256 reward = round.totalAmount.mul(rewardRate).div(TOTAL_RATE);
             betToken.approve(address(bonusSharePool), reward);
-            bonusSharePool.deposit(address(0x0),address(0x0), reward);
+            bonusSharePool.predictionBet(address(0x0),address(0x0), 0, reward);
         }
         round.rewardBaseCalAmount = rewardBaseCalAmount;
         round.rewardAmount = rewardAmount;

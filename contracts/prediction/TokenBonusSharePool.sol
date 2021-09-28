@@ -13,11 +13,11 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
 
     using SafeMath for uint256;
 
-    event Deposit(address source, address superior, uint256 amount, string coin);
+    event PredictionBet(address source, address superior, uint256 amount, uint256 fee,uint256 reward, uint8 ptype);
 
     event ShareToDFV(address source, address superior, uint256 amount);
 
-    event ShareToDFT(address source, uint256 amount);
+    event BrokerToDFT(address source, uint256 amount);
 
     event AirDrop(address onwernAddress, address recipient, uint256 nft);
 
@@ -29,8 +29,8 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
     address public userRelation;
 
     mapping(address => uint256) public superiorShares; 
+    mapping(address => uint256) public brokerShares; 
     uint256 public deadlineTime;
-    uint256 public shareAmount;
     uint256 public treasuryAmount; //给合约维护者的返佣
 
     uint256 public TOTAL_RATE = 100; // 100%
@@ -55,36 +55,53 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
         deadlineTime = _deadlineTime;
     }
 
-    function deposit(address source, address _superior, uint256 relAmount) external payable override {
+    function predictionBet(address source, address _superior, uint256 tradeAmount, uint256 relAmount) external payable override {
         require(relAmount >  0 &&  IERC20(shareToken).transferFrom(msg.sender, address(this), relAmount), 
             "transferFrom error"
         );
-         (address superior, uint8 role, bool isBind) =  IUserRelation(userRelation).getUserInfo(source);
+        (address superior,,,uint8 rewardRate) =  IUserRelation(userRelation).getUserInfo(source);
         if(source == address(0x0) || superior == address(0x0)) {
           treasuryAmount = treasuryAmount.add(relAmount);  
           return;  
         }
-        
+        (address superior1, bool isBroker1,,) =  IUserRelation(userRelation).getUserInfo(superior);
+        (, bool isBroker2,,) =  IUserRelation(userRelation).getUserInfo(superior1);
         uint256 amount;
-        uint256 treasury;
-        if(role == 2) { //is broker
-            (address superior1,uint8 role1,) =  IUserRelation(userRelation).getUserInfo(superior);
-            (,uint8 role2,) =  IUserRelation(userRelation).getUserInfo(superior1);
-        } else if(role == 3) {
-
+        if(isBroker2) {
+            amount = relAmount.mul(70).div(100);
+            treasuryAmount = treasuryAmount.add(relAmount.sub(amount));
+            uint256 superiorReward = amount.mul(rewardRate).div(100);
+            brokerShares[superior]  = brokerShares[superior].add(superiorReward);
+            brokerShares[superior1]  = brokerShares[superior1].add(amount.sub(superiorReward));
+            emit PredictionBet(source, superior, tradeAmount, relAmount , superiorReward, 1);
+            emit PredictionBet(superior, superior1, 0, 0, amount.sub(superiorReward), 2);
+        } else if(isBroker1) {
+            amount = relAmount.mul(70).div(100);
+            treasuryAmount = treasuryAmount.add(relAmount.sub(amount));
+            brokerShares[superior]  = brokerShares[superior].add(amount);
+            emit PredictionBet(source, superior, tradeAmount, relAmount, amount, 1);
         } else {
             amount = relAmount.mul(dfvRate).div(TOTAL_RATE);
-            treasury = relAmount.sub(amount);
-            treasuryAmount = treasuryAmount.add(treasury);
+            treasuryAmount = treasuryAmount.add(relAmount.sub(amount));
             superiorShares[superior]  = superiorShares[superior].add(amount);
-            shareAmount = shareAmount.add(amount);
+            emit PredictionBet(source, superior, tradeAmount, relAmount, amount, 0);
         }
-         emit Deposit(source, superior, amount, "USDT");
-        
     }
 
     function superiorShare(address user) external view returns(uint256) {
         uint256 amount = superiorShares[user];
+        if(amount == 0) {
+            return 0;
+        }
+        address[] memory swapTokens = new address[](2);
+        swapTokens[0] = shareToken ;
+        swapTokens[1] = defxToken;
+        uint256[] memory arr  = routerv2.getAmountsOut(amount, swapTokens);
+        return arr[1];
+    }
+
+    function borkerShare(address user) external view returns(uint256) {
+        uint256 amount = brokerShares[user];
         if(amount == 0) {
             return 0;
         }
@@ -100,7 +117,6 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
        uint256 amount = superiorShares[msg.sender];
        require(amount > 0, "not balance");
        superiorShares[msg.sender] = 0;
-       shareAmount = shareAmount.sub(amount);
        address[] memory swapTokens = new address[](2);
        swapTokens[0] = shareToken;
        swapTokens[1] = defxToken;
@@ -111,17 +127,16 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
        emit ShareToDFV(msg.sender, superior, amounts[1]);   
     }
 
-    function superiorShareToDFT() external {
-       uint256 amount = superiorShares[msg.sender];
+    function brokerShareToDFT() external {
+       uint256 amount = brokerShares[msg.sender];
        require(amount > 0, "not balance");
        superiorShares[msg.sender] = 0;
-       shareAmount = shareAmount.sub(amount);
        address[] memory swapTokens = new address[](2);
        swapTokens[0] = shareToken;
        swapTokens[1] = defxToken;
        uint[] memory amounts = routerv2.swapExactTokensForTokens(amount, 0, swapTokens, address(this), block.timestamp.add(deadlineTime)); 
        IDefxERC20(defxToken).transfer(msg.sender, amounts[1]);
-       emit ShareToDFT(msg.sender, amounts[1]);   
+       emit BrokerToDFT(msg.sender, amounts[1]);   
     }
    
     function airDrop(uint256[] memory nfts, address[] calldata users) external override onlyOwner{
