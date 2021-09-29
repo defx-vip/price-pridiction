@@ -100,7 +100,7 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
         return arr[1];
     }
 
-    function borkerShare(address user) external view returns(uint256) {
+    function brokerShare(address user) external view returns(uint256) {
         uint256 amount = brokerShares[user];
         if(amount == 0) {
             return 0;
