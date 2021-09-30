@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 
 interface ITokenBonusSharePool {
 
-    function predictionBet(address user, address superior,uint256 amount, uint256 fee) external payable;
+    function predictionBet(address user,uint256 amount, uint256 fee) external payable;
 
     function airDrop(uint256[] memory nfts, address[] calldata users) external;
 }
@@ -593,7 +593,7 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
         deadlineTime = _deadlineTime;
     }
 
-    function predictionBet(address source, address _superior, uint256 tradeAmount, uint256 relAmount) external payable override {
+    function predictionBet(address source, uint256 tradeAmount, uint256 relAmount) external payable override {
         require(relAmount >  0 &&  IERC20(shareToken).transferFrom(msg.sender, address(this), relAmount), 
             "transferFrom error"
         );
@@ -638,7 +638,7 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
         return arr[1];
     }
 
-    function borkerShare(address user) external view returns(uint256) {
+    function brokerShare(address user) external view returns(uint256) {
         uint256 amount = brokerShares[user];
         if(amount == 0) {
             return 0;
@@ -658,6 +658,7 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
        address[] memory swapTokens = new address[](2);
        swapTokens[0] = shareToken;
        swapTokens[1] = defxToken;
+       IERC20(shareToken).approve(address(routerv2), amount);
        uint[] memory amounts = routerv2.swapExactTokensForTokens(amount, 0, swapTokens, address(this), block.timestamp.add(deadlineTime)); 
        address superior =  vToken.getSuperior(msg.sender);
        IDefxERC20(defxToken).approve(dfvToken, amounts[1]);
@@ -672,6 +673,7 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
        address[] memory swapTokens = new address[](2);
        swapTokens[0] = shareToken;
        swapTokens[1] = defxToken;
+       IERC20(shareToken).approve(address(routerv2), amount);
        uint[] memory amounts = routerv2.swapExactTokensForTokens(amount, 0, swapTokens, address(this), block.timestamp.add(deadlineTime)); 
        IDefxERC20(defxToken).transfer(msg.sender, amounts[1]);
        emit BrokerToDFT(msg.sender, amounts[1]);   

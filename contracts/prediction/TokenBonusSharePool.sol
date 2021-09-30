@@ -55,7 +55,7 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
         deadlineTime = _deadlineTime;
     }
 
-    function predictionBet(address source, address _superior, uint256 tradeAmount, uint256 relAmount) external payable override {
+    function predictionBet(address source, uint256 tradeAmount, uint256 relAmount) external payable override {
         require(relAmount >  0 &&  IERC20(shareToken).transferFrom(msg.sender, address(this), relAmount), 
             "transferFrom error"
         );

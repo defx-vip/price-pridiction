@@ -65,7 +65,7 @@ pragma solidity ^0.8.0;
 
 interface ITokenBonusSharePool {
 
-    function predictionBet(address user, address superior,uint256 amount, uint256 fee) external payable;
+    function predictionBet(address user,uint256 amount, uint256 fee) external payable;
 
     function airDrop(uint256[] memory nfts, address[] calldata users) external;
 }
@@ -774,7 +774,7 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
             treasuryRate = _treasuryRate;
             oracleUpdateAllowance = _oracleUpdateAllowance;
             nftTokenFactory = _nftTokenFactory;
-            betToken = IERC20(0x7ef95a0FEE0Dd31b22626fA2e10Ee6A223F8a684);
+            betToken = IERC20(0x78867BbEeF44f2326bF8DDd1941a4439382EF2A7);
     }
 
     /**
@@ -923,7 +923,7 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
     /**
      * @dev Bet bear position
      */
-    function betBear(uint256 amount, address superior) external payable whenNotPaused notContract {
+    function betBear(uint256 amount) external payable whenNotPaused notContract {
         require(_bettable(currentEpoch), "Round not bettable");
         require(amount >= minBetAmount, "Bet amount must be greater than minBetAmount");
         require(betToken.transferFrom(msg.sender, address(this), amount), "transferFrom error");
@@ -942,14 +942,14 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
         userRounds[msg.sender].push(currentEpoch);
         uint256 fee = betInfo.amount.mul(treasuryRate).div(TOTAL_RATE);
         betToken.approve(address(bonusSharePool), fee);
-        bonusSharePool.predictionBet(msg.sender, superior, amount, fee);
+        bonusSharePool.predictionBet(msg.sender, amount, fee);
         emit BetBear(msg.sender, currentEpoch, amount, betInfo.nftTokenId);
     }
 
     /**
      * @dev Bet bull position
      */
-    function betBull(uint256 amount, address superior) external payable whenNotPaused notContract {
+    function betBull(uint256 amount) external payable whenNotPaused notContract {
         require(_bettable(currentEpoch), "Round not bettable");
         require(amount >= minBetAmount, "Bet amount must be greater than minBetAmount");
         require(betToken.transferFrom(msg.sender, address(this), amount), "transferFrom error");
@@ -968,7 +968,7 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
         userRounds[msg.sender].push(currentEpoch);
         uint256 fee = betInfo.amount.mul(treasuryRate).div(TOTAL_RATE); 
         betToken.approve(address(bonusSharePool), fee);
-        bonusSharePool.predictionBet(msg.sender, superior, amount, fee);
+        bonusSharePool.predictionBet(msg.sender, amount, fee);
         emit BetBull(msg.sender, currentEpoch, amount, betInfo.nftTokenId);
     }
 
@@ -1173,7 +1173,7 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
             treasuryAmt = round.totalAmount;
             uint256 reward = round.totalAmount.mul(rewardRate).div(TOTAL_RATE);
             betToken.approve(address(bonusSharePool), reward);
-            bonusSharePool.predictionBet(address(0x0),address(0x0), 0, reward);
+            bonusSharePool.predictionBet(address(0x0), 0, reward);
         }
         round.rewardBaseCalAmount = rewardBaseCalAmount;
         round.rewardAmount = rewardAmount;
