@@ -83,28 +83,28 @@ contract DefxNFTFactory is Governance, Initializable{
         require(amount > 0, "must stake defx in nft");
         uint256 seed = _computerSeed();
         ++lastTokenId;
-        DEFXToken memory aolig;
-        aolig.id = lastTokenId;
-        aolig.amount = amount;
-        aolig.author = author;
-        aolig.blockNum = block.number;
-        aolig.createdTime = block.timestamp;
-        aolig.resId = resId;
-        aolig.quality = seed % _qualityBase;
-        aolig.grade = getGrade( aolig.quality );
-        _aolis[lastTokenId] = aolig;
+        DEFXToken memory defxInfo;
+        defxInfo.id = lastTokenId;
+        defxInfo.amount = amount;
+        defxInfo.author = author;
+        defxInfo.blockNum = block.number;
+        defxInfo.createdTime = block.timestamp;
+        defxInfo.resId = resId;
+        defxInfo.quality = seed % _qualityBase;
+        defxInfo.grade = getGrade( defxInfo.quality );
+        _aolis[lastTokenId] = defxInfo;
         nft.mint(author, lastTokenId);
         emit NFTAdded(
-            aolig.id,
-            aolig.grade,
-            aolig.quality,
-            aolig.amount,
-            aolig.createdTime,
-            aolig.blockNum,
-            aolig.resId,
-            aolig.author,
+            defxInfo.id,
+            defxInfo.grade,
+            defxInfo.quality,
+            defxInfo.amount,
+            defxInfo.createdTime,
+            defxInfo.blockNum,
+            defxInfo.resId,
+            defxInfo.author,
             address(nft),
-            nft.tokenURI(aolig.id)
+            nft.tokenURI(defxInfo.id)
         );
         return lastTokenId;
     }

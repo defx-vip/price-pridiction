@@ -12,17 +12,6 @@ contract BNBLottery  is Pausable, Initializable{
 
     using SafeMath for uint256;
 
-    struct AoLiGei {
-        uint256 id;
-        uint256 grade;
-        uint256 quality;
-        uint256 amount;
-        uint256 createdTime;
-        uint256 blockNum;
-        uint256 resId;
-        address author;
-    }
-
     //彩票周期
     struct Round {
         uint256 epoch; //index
@@ -180,7 +169,7 @@ contract BNBLottery  is Pausable, Initializable{
     }
 
       /**
-     * @dev Start genesis round/ 创建合约后开启一个期权
+     * @dev Start genesis round/ 
      */
     function genesisStartRound() external onlyOperator whenNotPaused {
         require(!genesisStartOnce, "Can only run genesisStartRound once");
@@ -191,7 +180,7 @@ contract BNBLottery  is Pausable, Initializable{
     }
 
      /**
-     *  当前区块等于大于当前进行期权的lockNumber时访问
+     *  
      * @dev Start the next round n, lock price for round n-1, end round n-2
      */
     function executeRound() external onlyOperator whenNotPaused {
