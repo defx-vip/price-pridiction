@@ -2,7 +2,8 @@
 pragma solidity ^0.8.0;
 import '../interface/ITokenBonusSharePool.sol';
 import '../interface/IDFVToken.sol';
-import "../interface/Routerv2.sol";
+import "../interface/IJustswapExchange.sol";
+import "../interface/IJustswapFactory.sol";
 import "../interface/IDefxERC20.sol";
 import "../interface/IDefxNFTFactory.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
@@ -24,7 +25,7 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
     address public dfvToken;
     address public defxToken;
     address public shareToken;
-    Routerv2 public routerv2;
+    IJustswapFactory public justswap;
     IDefxNFTFactory defxNFTFactory;
     address public userRelation;
 
@@ -36,12 +37,11 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
     uint256 public TOTAL_RATE = 100; // 100%
     uint256 public dfvRate = 20; // dfv比例
     uint256 public treasuryRate = 80; // 80
-    
     constructor(
         address _dfvToken,
         address _defxToken,
         address _shareToken,
-        address _routerv2,
+        address _justswap,
         address _defxNFTFactory,
         address _userRelation,
         uint256 _deadlineTime
@@ -49,7 +49,7 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
         dfvToken = _dfvToken;
         defxToken = _defxToken;
         shareToken = _shareToken;
-        routerv2 = Routerv2(_routerv2);
+        justswap = IJustswapFactory(_justswap);
         defxNFTFactory = IDefxNFTFactory(_defxNFTFactory);
         userRelation =  _userRelation;
         deadlineTime = _deadlineTime;
@@ -93,11 +93,12 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
         if(amount == 0) {
             return 0;
         }
-        address[] memory swapTokens = new address[](2);
-        swapTokens[0] = shareToken ;
-        swapTokens[1] = defxToken;
-        uint256[] memory arr  = routerv2.getAmountsOut(amount, swapTokens);
-        return arr[1];
+        address shareTokenExchange = justswap.getExchange(shareToken);
+        address defxTokenExchange = justswap.getExchange(defxToken);
+        require(shareTokenExchange != address(0x0) || defxTokenExchange != address(0x0), "exchange address is 0x0");
+        uint256 rtx = IJustswapExchange(shareTokenExchange).getTokenToTrxInputPrice(amount);
+        uint256 dftAmount = IJustswapExchange(defxTokenExchange).getTrxToTokenInputPrice(rtx);
+        return dftAmount;
     }
 
     function brokerShare(address user) external view returns(uint256) {
@@ -105,11 +106,12 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
         if(amount == 0) {
             return 0;
         }
-        address[] memory swapTokens = new address[](2);
-        swapTokens[0] = shareToken ;
-        swapTokens[1] = defxToken;
-        uint256[] memory arr  = routerv2.getAmountsOut(amount, swapTokens);
-        return arr[1];
+        address shareTokenExchange = justswap.getExchange(shareToken);
+        address defxTokenExchange = justswap.getExchange(defxToken);
+        require(shareTokenExchange != address(0x0) || defxTokenExchange != address(0x0), "exchange address is 0x0");
+        uint256 trxAmount = IJustswapExchange(shareTokenExchange).getTokenToTrxInputPrice(amount);
+        uint256 dftAmount = IJustswapExchange(defxTokenExchange).getTrxToTokenInputPrice(trxAmount);
+        return dftAmount;
     }
 
     function superiorShareToDFV() external {
@@ -117,28 +119,28 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
        uint256 amount = superiorShares[msg.sender];
        require(amount > 0, "not balance");
        superiorShares[msg.sender] = 0;
-       address[] memory swapTokens = new address[](2);
-       swapTokens[0] = shareToken;
-       swapTokens[1] = defxToken;
-       IERC20(shareToken).approve(address(routerv2), amount);
-       uint[] memory amounts = routerv2.swapExactTokensForTokens(amount, 0, swapTokens, address(this), block.timestamp.add(deadlineTime)); 
+       address shareTokenExchange = justswap.getExchange(shareToken);
+       address defxTokenExchange = justswap.getExchange(defxToken);
+       require(shareTokenExchange != address(0x0) || defxTokenExchange != address(0x0), "exchange address is 0x0");
+       IERC20(shareToken).approve(shareTokenExchange, amount);
+       uint256 dftAmount = IJustswapExchange(shareTokenExchange).tokenToTokenSwapInput(amount, 0, 1, block.timestamp.add(deadlineTime), defxToken);
        address superior =  vToken.getSuperior(msg.sender);
-       IDefxERC20(defxToken).approve(dfvToken, amounts[1]);
-       vToken.mintToUser(amounts[1], msg.sender);
-       emit ShareToDFV(msg.sender, superior, amounts[1]);   
+       IDefxERC20(defxToken).approve(dfvToken, dftAmount);
+       vToken.mintToUser(dftAmount, msg.sender);
+       emit ShareToDFV(msg.sender, superior, dftAmount);  
     }
 
     function brokerShareToDFT() external {
        uint256 amount = brokerShares[msg.sender];
        require(amount > 0, "not balance");
        superiorShares[msg.sender] = 0;
-       address[] memory swapTokens = new address[](2);
-       swapTokens[0] = shareToken;
-       swapTokens[1] = defxToken;
-       IERC20(shareToken).approve(address(routerv2), amount);
-       uint[] memory amounts = routerv2.swapExactTokensForTokens(amount, 0, swapTokens, address(this), block.timestamp.add(deadlineTime)); 
-       IDefxERC20(defxToken).transfer(msg.sender, amounts[1]);
-       emit BrokerToDFT(msg.sender, amounts[1]);   
+       address shareTokenExchange = justswap.getExchange(shareToken);
+       address defxTokenExchange = justswap.getExchange(defxToken);
+       require(shareTokenExchange != address(0x0) || defxTokenExchange != address(0x0), "exchange address is 0x0");
+       IERC20(shareToken).approve(shareTokenExchange, amount);
+       uint256 dftAmount = IJustswapExchange(shareTokenExchange).tokenToTokenSwapInput(amount, 0, 1, block.timestamp.add(deadlineTime), defxToken);
+       IDefxERC20(defxToken).transfer(msg.sender, dftAmount);
+       emit BrokerToDFT(msg.sender, dftAmount);   
     }
    
     function airDrop(uint256[] memory nfts, address[] calldata users) external override onlyOwner{
