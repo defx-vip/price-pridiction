@@ -34,7 +34,7 @@ contract UserRelation is Ownable,Initializable,IUserRelation {
         _;
     }
 
-    function initialize(address _dftToken, address _dftTeam) external initializer{
+    constructor(address _dftToken, address _dftTeam){
         dftTeam = _dftTeam;
         dftToken = _dftToken;
         defaultRewardRate = 20;
@@ -128,6 +128,4 @@ contract UserRelation is Ownable,Initializable,IUserRelation {
     function getDftTeam() external view override returns(address) {
         return dftTeam;
     }
-
-    
 }

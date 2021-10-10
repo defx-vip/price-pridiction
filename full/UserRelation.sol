@@ -331,7 +331,7 @@ contract UserRelation is Ownable,Initializable,IUserRelation {
     function quitBroker() external returns(bool) {
         UserInfo storage userInfo = users[msg.sender];
         require(userInfo.isBroker,  "UserRelation: invalid  user address");
-        require(IERC20(dftToken).transfer(msg.sender, 1000 * 10 ** 18), "transferFrom error");
+        require(IERC20(dftToken).transfer(msg.sender, 10000 * 10 ** 18), "transferFrom error");
         userInfo.isBroker = false;
         emit QuitBroker(msg.sender);
         return true;
