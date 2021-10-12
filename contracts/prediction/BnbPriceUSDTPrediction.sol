@@ -17,67 +17,66 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
     //
     enum Position {Bull, Bear}
 
-    //期权周期
     struct Round {
         uint256 epoch; //index
-        uint256 startBlock; //开始区块
-        uint256 lockBlock; //锁的区块
-        uint256 endBlock; //结算区块
-        int256 lockPrice; //锁定价格
-        int256 closePrice; //结算价格
-        uint256 totalAmount; //投注总金额
-        uint256 bullAmount; //看涨金额
-        uint256 bearAmount; //看跌金额
-        uint256 rewardBaseCalAmount; //赢家投注金额
-        uint256 rewardAmount; //赢家金额
-        bool oracleCalled; //是否已经获取价格
+        uint256 startBlock; 
+        uint256 lockBlock;
+        uint256 endBlock; 
+        int256 lockPrice; 
+        int256 closePrice; 
+        uint256 totalAmount; 
+        uint256 bullAmount; 
+        uint256 bearAmount; 
+        uint256 rewardBaseCalAmount; 
+        uint256 rewardAmount; 
+        bool oracleCalled;
     }
 
-    //赌注即订单
+   
     struct BetInfo {
-        Position position; //看涨或者看跌
-        uint256 amount; //金额
-        bool claimed; // 是否需要领取
+        Position position; 
+        uint256 amount; 
+        bool claimed; 
         uint256 nftTokenId;
     }
 
-    bool public genesisStartOnce = false; //是否调用初始化开始方法
+    bool public genesisStartOnce = false; 
 
-    bool public genesisLockOnce = false; //是否调用初始化锁定方法
+    bool public genesisLockOnce = false;
 
-    uint256 public currentEpoch; //当前周期角标
+    uint256 public currentEpoch; 
 
     uint256 public intervalBlocks; //100
 
     uint256 public bufferBlocks; //15
 
-    address public adminAddress; //管理员地址
+    address public adminAddress; 
 
-    address public operatorAddress; //操作员地址
+    address public operatorAddress; 
 
     uint256 public oracleLatestRoundId;
 
-    uint256 public TOTAL_RATE; // 100%
+    uint256 public TOTAL_RATE; 
 
-    uint256 public rewardRate; // 90% 赢家比率
+    uint256 public rewardRate; 
 
-    uint256 public treasuryRate; // 10% 合约维护者佣金比率
+    uint256 public treasuryRate; 
 
-    uint256 public minBetAmount; //最小投资金额
+    uint256 public minBetAmount; 
 
-    uint256 public oracleUpdateAllowance; // seconds 允许价格相差的时间
+    uint256 public oracleUpdateAllowance; 
 
-    mapping(uint256 => Round) public rounds; //期权周期mapping, currentEpoch
+    mapping(uint256 => Round) public rounds; 
 
-    mapping(uint256 => mapping(address => BetInfo)) public ledger; //期权周期=>用户下注详细
+    mapping(uint256 => mapping(address => BetInfo)) public ledger; 
 
-    mapping(address => uint256[]) public userRounds; //
+    mapping(address => uint256[]) public userRounds; 
 
     IDefxNFTFactory public nftTokenFactory;
 
-    AggregatorV3Interface internal oracle; //预言机
+    AggregatorV3Interface internal oracle; 
 
-    ITokenBonusSharePool public bonusSharePool; //分红
+    ITokenBonusSharePool public bonusSharePool; 
 
     IERC20 public betToken;
 
@@ -204,7 +203,7 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
     }
 
     /**
-     * @dev set reward rate /设置盈利率
+     * @dev set reward rate 
      * callable by admin
      */
     function setRewardRate(uint256 _rewardRate) external onlyAdmin {
@@ -566,22 +565,6 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
         require(roundId > oracleLatestRoundId, "Oracle update roundId must be larger than oracleLatestRoundId");
         oracleLatestRoundId = uint256(roundId);
         return price;
-    }
-
-    function _safeTransferBNB(address to, uint256 value) internal {
-        (bool success, ) = to.call{gas: 23000, value: value}("");
-        require(success, "TransferHelper: BNB_TRANSFER_FAILED");
-    }
-
-    function transferForeignToken(address _token, address _to) public onlyAdmin returns(bool _sent){
-        require(_token != address(this), "Can't let you take all native token");
-        uint256 _contractBalance = IERC20(_token).balanceOf(address(this));
-        _sent = IERC20(_token).transfer(_to, _contractBalance);
-    }
-
-    function Sweep() external onlyAdmin {
-        uint256 balance = address(this).balance;
-        payable(owner()).transfer(balance);
     }
 
     function _isContract(address addr) internal view returns (bool) {
