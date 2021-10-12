@@ -953,11 +953,11 @@ contract DFVToken is Ownable,Initializable {
     }
     // ============ Constructor ============
 
-    function initialize(
+    constructor(
         address aggregator,
         address dftToken,
         address userRelation
-    )  public initializer {
+    )  {
         _aggregator = aggregator;
         _dftToken = dftToken;
         _userRelation = userRelation;

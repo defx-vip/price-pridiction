@@ -207,7 +207,7 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
      * @dev set reward rate /设置盈利率
      * callable by admin
      */
-    function setRewardRate(uint256 _rewardRate) external onlyAdmin {
+    function setRewardRate(uint256 _rewardRate) external onlyAdmin whenPaused{
         require(_rewardRate <= TOTAL_RATE, "rewardRate cannot be more than 100%");
         rewardRate = _rewardRate;
         treasuryRate = TOTAL_RATE.sub(_rewardRate);
@@ -546,8 +546,10 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
             rewardAmount = 0;
             treasuryAmt = round.totalAmount;
             uint256 reward = round.totalAmount.mul(rewardRate).div(TOTAL_RATE);
-            betToken.approve(address(bonusSharePool), reward);
-            bonusSharePool.predictionBet(address(0x0), 0, reward);
+            if(reward > 0) {
+                betToken.approve(address(bonusSharePool), reward);
+                bonusSharePool.predictionBet(address(0x0), 0, reward);
+            }
         }
         round.rewardBaseCalAmount = rewardBaseCalAmount;
         round.rewardAmount = rewardAmount;

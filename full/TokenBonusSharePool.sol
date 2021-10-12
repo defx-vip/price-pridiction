@@ -1,6 +1,6 @@
 // File: contracts/interface/ITokenBonusSharePool.sol
 
-// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
 
 interface ITokenBonusSharePool {
@@ -536,15 +536,8 @@ interface IUserRelation {
 
 // File: contracts/prediction/TokenBonusSharePool.sol
 
-
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
-
-
-
-
-
-
-
 
 
 contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
@@ -574,6 +567,8 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
     uint256 public TOTAL_RATE = 100; // 100%
     uint256 public dfvRate = 20; // dfv比例
     uint256 public treasuryRate = 80; // 80
+
+    address[] public swapTokens;
     
     constructor(
         address _dfvToken,
@@ -591,6 +586,8 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
         defxNFTFactory = IDefxNFTFactory(_defxNFTFactory);
         userRelation =  _userRelation;
         deadlineTime = _deadlineTime;
+        swapTokens[0] = shareToken;
+        swapTokens[1] = defxToken;
     }
 
     function predictionBet(address source, uint256 tradeAmount, uint256 relAmount) external payable override {
@@ -631,9 +628,7 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
         if(amount == 0) {
             return 0;
         }
-        address[] memory swapTokens = new address[](2);
-        swapTokens[0] = shareToken ;
-        swapTokens[1] = defxToken;
+    
         uint256[] memory arr  = routerv2.getAmountsOut(amount, swapTokens);
         return arr[1];
     }
@@ -643,9 +638,6 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
         if(amount == 0) {
             return 0;
         }
-        address[] memory swapTokens = new address[](2);
-        swapTokens[0] = shareToken ;
-        swapTokens[1] = defxToken;
         uint256[] memory arr  = routerv2.getAmountsOut(amount, swapTokens);
         return arr[1];
     }
@@ -655,9 +647,7 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
        uint256 amount = superiorShares[msg.sender];
        require(amount > 0, "not balance");
        superiorShares[msg.sender] = 0;
-       address[] memory swapTokens = new address[](2);
-       swapTokens[0] = shareToken;
-       swapTokens[1] = defxToken;
+      
        IERC20(shareToken).approve(address(routerv2), amount);
        uint[] memory amounts = routerv2.swapExactTokensForTokens(amount, 0, swapTokens, address(this), block.timestamp.add(deadlineTime)); 
        address superior =  vToken.getSuperior(msg.sender);
@@ -670,9 +660,6 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
        uint256 amount = brokerShares[msg.sender];
        require(amount > 0, "not balance");
        superiorShares[msg.sender] = 0;
-       address[] memory swapTokens = new address[](2);
-       swapTokens[0] = shareToken;
-       swapTokens[1] = defxToken;
        IERC20(shareToken).approve(address(routerv2), amount);
        uint[] memory amounts = routerv2.swapExactTokensForTokens(amount, 0, swapTokens, address(this), block.timestamp.add(deadlineTime)); 
        IDefxERC20(defxToken).transfer(msg.sender, amounts[1]);
@@ -716,4 +703,8 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
         IERC20(shareToken).transfer(msg.sender, currentTreasuryAmount);
     }
 
+    function setSwapTokens(address[] memory _swapTokens) external onlyOwner{
+        require(_swapTokens[0] == shareToken && _swapTokens[_swapTokens.length -1] == defxToken, "_swapTokens error");
+        swapTokens = _swapTokens;
+    }
 }
