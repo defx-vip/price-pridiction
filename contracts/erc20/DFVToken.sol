@@ -329,7 +329,7 @@ contract DFVToken is Ownable,Initializable {
         feeRatio = getRatioValue(x);
     }
 
-    function getRatioValue(uint256 input) public view returns (uint256) {
+    function getRatioValue(uint256 input) public pure returns (uint256) {
 
         // y = 30% (x < 0.1)
         // y = 10% (x > 0.5)
