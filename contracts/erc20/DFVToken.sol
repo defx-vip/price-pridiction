@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity >=0.8.0; 
-pragma experimental ABIEncoderV2;
-
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -18,14 +16,14 @@ contract DFVToken is Ownable,Initializable {
 
     // ============ Storage(ERC20) ============
 
-    string public name = "DFV Membership Token";
-    string public symbol = "DFV";
-    uint8 public decimals = 18;
+    string constant name = "DFV Membership Token";
+    string constant symbol = "DFV";
+    uint8 constant decimals = 18;
     
-    uint128 public MAX_UINT112 = ~uint112(0);
+    uint128 constant MAX_UINT112 = ~uint112(0);
 
-    uint256 public _MIN_PENALTY_RATIO_ = 10 * 10**16; // 10%
-    uint256 public _MAX_PENALTY_RATIO_ = 30 * 10**16; // 30%
+    uint256 constant _MIN_PENALTY_RATIO_ = 10 * 10**16; // 10%
+    uint256 constant _MAX_PENALTY_RATIO_ = 30 * 10**16; // 30%
 
     mapping(address => mapping(address => uint256)) internal _allowed;
 

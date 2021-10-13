@@ -5,6 +5,7 @@ import "../library/Governance.sol";
 import "./DefxNFT.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
 contract DefxNFTFactory is Governance, Initializable{
 
@@ -128,7 +129,7 @@ contract DefxNFTFactory is Governance, Initializable{
      * @dev See {IERC721-safeTransferFrom}.
      */
     function safeTransferFrom(address from, address to, uint256 tokenId) public  {
-        require(_minters[msg.sender]  , "can't TransferFrom");
+        require(_minters[msg.sender], "can't TransferFrom");
         nft.safeTransferFrom(from, to, tokenId, "");
         emit NFTTransfer(from, to, tokenId);
     }
@@ -173,5 +174,16 @@ contract DefxNFTFactory is Governance, Initializable{
         ) {
         DEFXToken memory a = _aolis[tokenId];
         return (a.grade, a.quality, a.resId, a.author, nft.tokenURI(tokenId));
-     }  
+     }
+
+     function onERC721Received(address operator, address from, uint256 tokenId, bytes memory data) public returns (bytes4) {
+        //only receive the _nft staff
+        if(address(this) != operator) {
+            //invalid from nft
+            return 0;
+        }
+        //success
+        emit NFTReceived(operator, from, tokenId, data);
+        return bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"));
+    }
 }
