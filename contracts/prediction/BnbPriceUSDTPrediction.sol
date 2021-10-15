@@ -575,17 +575,6 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
         require(success, "TransferHelper: BNB_TRANSFER_FAILED");
     }
 
-    function transferForeignToken(address _token, address _to) public onlyAdmin returns(bool _sent){
-        require(_token != address(this), "Can't let you take all native token");
-        uint256 _contractBalance = IERC20(_token).balanceOf(address(this));
-        _sent = IERC20(_token).transfer(_to, _contractBalance);
-    }
-
-    function Sweep() external onlyAdmin {
-        uint256 balance = address(this).balance;
-        payable(owner()).transfer(balance);
-    }
-
     function _isContract(address addr) internal view returns (bool) {
         uint256 size;
         assembly {
