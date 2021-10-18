@@ -68,7 +68,7 @@ contract UserRelation is Ownable,IUserRelation {
          !userInfo.isBroker && (userInfo.superior == address(0x0) || userInfo.superior == dftTeam), 
          "UserRelation: invalid  user address"
          );
-        require(IERC20(dftToken).transferFrom(msg.sender, address(this), 1000 * 10 ** 18), "transferFrom error");
+        require(IERC20(dftToken).transferFrom(msg.sender, address(this), 10000 * 10 ** 18), "transferFrom error");
         userInfo.isBroker = true;
         userInfo.bind = true;
         userInfo.superior = dftTeam;
