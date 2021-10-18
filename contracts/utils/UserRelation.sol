@@ -40,6 +40,10 @@ contract UserRelation is Ownable,IUserRelation {
     }
 
     function bindUser(address user, address superior) external  isOperator override returns(bool)  {
+        require(
+         superior != address(0) && user != superior,
+            "UserRelation: Superior INVALID"
+        );
         UserInfo storage userInfo = users[user];
         require(!userInfo.bind, "UserRelation: user is already bound");
         userInfo.superior = superior;
@@ -50,6 +54,10 @@ contract UserRelation is Ownable,IUserRelation {
     }
 
     function bindToBroker(address superior) external  returns(bool)  {
+        require(
+         superior != address(0) && msg.sender != superior,
+            "UserRelation: Superior INVALID"
+        );
         UserInfo storage userInfo = users[msg.sender];
         require(!userInfo.bind, "UserRelation: user is already bound");
         UserInfo storage superiorInfo = users[superior];
@@ -63,6 +71,10 @@ contract UserRelation is Ownable,IUserRelation {
     }
 
     function toBroker() external returns(bool) {
+        require(
+          msg.sender != dftTeam,
+            "UserRelation: Superior INVALID"
+        );
         UserInfo storage userInfo = users[msg.sender];
         require(
          !userInfo.isBroker && (userInfo.superior == address(0x0) || userInfo.superior == dftTeam), 
