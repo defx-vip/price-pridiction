@@ -60,8 +60,6 @@ contract BNBLottery  is Pausable, Initializable{
 
     uint8 public roundRewardLevel; //奖励金额等级
 
-    uint256 public minBetAmount; //最小奖励金额
-
     mapping(uint256 => Round) public rounds; //期权周期mapping, currentEpoch
 
     mapping(uint256 => mapping(uint256 => BetInfo)) public ledger; //期权周期=>用户下注详细
@@ -161,7 +159,6 @@ contract BNBLottery  is Pausable, Initializable{
      */
     function genesisStartRound() external onlyOperator whenNotPaused {
         require(!genesisStartOnce, "Can only run genesisStartRound once");
-        _getRoundRewardAmount();
         currentEpoch = currentEpoch + 1;
         _startRound(currentEpoch);
         genesisStartOnce = true;
@@ -176,7 +173,6 @@ contract BNBLottery  is Pausable, Initializable{
             genesisStartOnce,
             "Can only run after genesisStartRound and genesisLockRound is triggered"
         );
-        _getRoundRewardAmount();
         _safeEndRound(currentEpoch);
         // Increment currentEpoch to current round (n)
         currentEpoch = currentEpoch + 1;
@@ -366,10 +362,6 @@ contract BNBLottery  is Pausable, Initializable{
         }
         round.oracleCalled = true;
         emit EndRound(epoch, block.number, round.winnerNumber);
-    }
-
-    function _getRoundRewardAmount() internal {
-        roundRewardAmount = minBetAmount;
     }
 
     function _safeTransferBNB(address to, uint256 value) internal {
