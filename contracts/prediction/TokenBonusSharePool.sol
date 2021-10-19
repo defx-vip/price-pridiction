@@ -55,6 +55,7 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
         defxNFTFactory = IDefxNFTFactory(_defxNFTFactory);
         userRelation =  _userRelation;
         deadlineTime = _deadlineTime;
+        swapTokens = new address[](2);
         swapTokens[0] = shareToken;
         swapTokens[1] = defxToken;
     }
@@ -63,18 +64,18 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
         require(relAmount >  0 &&  IERC20(shareToken).transferFrom(msg.sender, address(this), relAmount), 
             "transferFrom error"
         );
-        (address superior,,,uint8 rewardRate) =  IUserRelation(userRelation).getUserInfo(source);
+        (address superior,,,) =  IUserRelation(userRelation).getUserInfo(source);
         if(source == address(0x0) || superior == address(0x0)) {
           treasuryAmount = treasuryAmount.add(relAmount);  
           return;  
         }
-        (address superior1, bool isBroker1,,) =  IUserRelation(userRelation).getUserInfo(superior);
+        (address superior1, bool isBroker1, ,uint8 rewardRate1) =  IUserRelation(userRelation).getUserInfo(superior);
         (, bool isBroker2,,) =  IUserRelation(userRelation).getUserInfo(superior1);
         uint256 amount;
         if(isBroker2) {
             amount = relAmount.mul(70).div(100);
             treasuryAmount = treasuryAmount.add(relAmount.sub(amount));
-            uint256 superiorReward = amount.mul(rewardRate).div(100);
+            uint256 superiorReward = amount.mul(rewardRate1).div(100);
             brokerShares[superior]  = brokerShares[superior].add(superiorReward);
             brokerShares[superior1]  = brokerShares[superior1].add(amount.sub(superiorReward));
             emit PredictionBet(source, superior, tradeAmount, relAmount , superiorReward, 1);
