@@ -27,9 +27,7 @@ contract BNBLottery  is Pausable, Initializable{
 
     //质押
     struct BetInfo {
-        uint256 nftTokenId;
         bool claimed; // 是否需要领取
-        uint256 point;//中奖概率分数
         uint256 startPoint;
         uint256 endPoint;
     }
@@ -104,7 +102,6 @@ contract BNBLottery  is Pausable, Initializable{
         address _operatorAddress,
         uint256 _intervalBlocks,
         uint256 _bufferBlocks,
-        uint256 _minBetAmount,
         uint8 _roundRewardLevel,
         address _oracle,
         address  _nftTokenFactory,
@@ -116,7 +113,6 @@ contract BNBLottery  is Pausable, Initializable{
             bufferBlocks = _bufferBlocks;
             roundRewardLevel = _roundRewardLevel;
             nftFactory = IDefxNFTFactory(_nftTokenFactory);
-            minBetAmount =  _minBetAmount;
             oracle = AggregatorV3Interface(_oracle);
             dftToken = IERC20(_dftToken);
     }
@@ -158,14 +154,6 @@ contract BNBLottery  is Pausable, Initializable{
     function setBufferBlocks(uint256 _bufferBlocks) external onlyAdmin {
         require(_bufferBlocks <= intervalBlocks, "Cannot be more than intervalBlocks");
         bufferBlocks = _bufferBlocks;
-    }
-
-    /**
-     * @dev set minBetAmount
-     * callable by admin
-     */
-    function setMinBetAmount(uint256 _minBetAmount) external onlyAdmin {
-        minBetAmount = _minBetAmount;
     }
 
       /**
@@ -229,7 +217,7 @@ contract BNBLottery  is Pausable, Initializable{
         }
         BetInfo storage betInfo = ledger[epoch][tokenId];
         betInfo.claimed = true;
-        emit Claim(msg.sender, epoch, reward, betInfo.nftTokenId,betInfo.startPoint);
+        emit Claim(msg.sender, epoch, reward, tokenId,betInfo.startPoint);
     }
 
 
@@ -309,7 +297,7 @@ contract BNBLottery  is Pausable, Initializable{
     function refundable(uint256 epoch, uint256 tokenId) public view returns (bool) {
         BetInfo memory betInfo = ledger[epoch][tokenId];
         Round memory round = rounds[epoch];
-        return !round.oracleCalled && betInfo.nftTokenId != 0;
+        return !round.oracleCalled && betInfo.startPoint != 0;
     }
 
     function _bet(uint256 tokenId) internal {
@@ -325,10 +313,8 @@ contract BNBLottery  is Pausable, Initializable{
 
          // Update user data
         BetInfo storage betInfo = ledger[currentEpoch][tokenId];
-        betInfo.nftTokenId = tokenId;
         betInfo.startPoint = round.totalPonits;
-        betInfo.point =  point;
-        round.totalPonits +=  betInfo.point;
+        round.totalPonits +=  point;
         betInfo.endPoint = round.totalPonits;
 
         emit Bet(msg.sender, currentEpoch, tokenId, betInfo.startPoint, betInfo.endPoint);

@@ -44,16 +44,9 @@ contract DefxNFTFactory is Governance, Initializable{
     );
 
     uint256 public lastTokenId;
-
     uint256 public _qualityBase = 10000;
-
-    //NFT的合约
     DefxNFT public nft ;
-
-    // 挖矿的账户
     mapping(address => bool) public _minters;
-
-    //
     mapping(uint256 => DEFXToken) public _aolis;
 
      /**
