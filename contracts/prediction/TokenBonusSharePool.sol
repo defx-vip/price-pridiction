@@ -175,6 +175,7 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
 
     function setSwapTokens(address[] memory _swapTokens) external onlyOwner{
         require(_swapTokens[0] == shareToken && _swapTokens[_swapTokens.length -1] == defxToken, "_swapTokens error");
+        delete swapTokens;
         swapTokens = _swapTokens;
     }
 }
