@@ -131,7 +131,7 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
     function brokerShareToDFT() external {
        uint256 amount = brokerShares[msg.sender];
        require(amount > 0, "not balance");
-       superiorShares[msg.sender] = 0;
+       brokerShares[msg.sender] = 0;
        IERC20(shareToken).approve(address(routerv2), amount);
        uint[] memory amounts = routerv2.swapExactTokensForTokens(amount, 0, swapTokens, address(this), block.timestamp.add(deadlineTime)); 
        IDefxERC20(defxToken).transfer(msg.sender, amounts[1]);
