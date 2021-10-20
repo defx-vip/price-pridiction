@@ -21,6 +21,8 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
 
     event AirDrop(address onwernAddress, address recipient, uint256 nft);
 
+    event TreasuryClaim(address operator, uint256 amount);
+
     address public dfvToken;
     address public defxToken;
     address public shareToken;
@@ -171,6 +173,7 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
         uint256 currentTreasuryAmount = treasuryAmount;
         treasuryAmount = 0;
         IERC20(shareToken).transfer(msg.sender, currentTreasuryAmount);
+        emit TreasuryClaim(msg.sender, currentTreasuryAmount);
     }
 
     function setSwapTokens(address[] memory _swapTokens) external onlyOwner{
