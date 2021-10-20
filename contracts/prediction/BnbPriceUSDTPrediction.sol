@@ -372,7 +372,7 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
         // Round invalid, refund bet amount
         else {
             require(refundable(epoch, msg.sender), "Not eligible for refund");
-            reward = ledger[epoch][msg.sender].amount;
+            reward = ledger[epoch][msg.sender].amount.mul(rewardRate).div(TOTAL_RATE);
             require(betToken.transfer(msg.sender, reward), "transfer error");
         }
         betInfo.claimed = true;
