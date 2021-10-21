@@ -10,12 +10,12 @@ contract UserRelation is Ownable,IUserRelation {
     address public dftToken;
     address public dftTeam;
     uint8 public defaultRewardRate;
-
+    uint256 public inBrokerCash = 10000 * 10 ** 18;
     struct UserInfo {
         address superior;
-        bool bind;
         bool isBroker;
         uint8 rewardRate;
+        uint256 brokerCash;
     }
 
     event BindToBroker(address account, address superior);
@@ -45,9 +45,8 @@ contract UserRelation is Ownable,IUserRelation {
             "UserRelation: Superior INVALID"
         );
         UserInfo storage userInfo = users[user];
-        require(!userInfo.bind, "UserRelation: user is already bound");
+        require(userInfo.superior == address(0), "UserRelation: user is already bound");
         userInfo.superior = superior;
-        userInfo.bind = true;
         userInfo.rewardRate = defaultRewardRate;
         emit BindUser(user, superior);
         return true;
@@ -59,13 +58,12 @@ contract UserRelation is Ownable,IUserRelation {
             "UserRelation: Superior INVALID"
         );
         UserInfo storage userInfo = users[msg.sender];
-        require(!userInfo.bind, "UserRelation: user is already bound");
+        require(userInfo.superior == address(0), "UserRelation: user is already bound");
         UserInfo storage superiorInfo = users[superior];
         UserInfo storage superiorInfo1 = users[superiorInfo.superior];
         require(superiorInfo.isBroker || superiorInfo1.isBroker, "UserRelation: superior not broker");
         userInfo.superior = superior;
         userInfo.rewardRate = defaultRewardRate;
-        userInfo.bind = true;
         emit BindToBroker(msg.sender, superior);
         return true;
     }
@@ -77,12 +75,12 @@ contract UserRelation is Ownable,IUserRelation {
         );
         UserInfo storage userInfo = users[msg.sender];
         require(
-         !userInfo.isBroker && (userInfo.superior == address(0x0) || userInfo.superior == dftTeam), 
+         !userInfo.isBroker && (userInfo.superior == address(0) || userInfo.superior == dftTeam), 
          "UserRelation: invalid  user address"
          );
-        require(IERC20(dftToken).transferFrom(msg.sender, address(this), 10000 * 10 ** 18), "transferFrom error");
+        require(IERC20(dftToken).transferFrom(msg.sender, address(this), inBrokerCash), "transferFrom error");
         userInfo.isBroker = true;
-        userInfo.bind = true;
+        userInfo.brokerCash = inBrokerCash;
         userInfo.superior = dftTeam;
         userInfo.rewardRate = defaultRewardRate;
         emit ToBroker(msg.sender);
@@ -92,7 +90,7 @@ contract UserRelation is Ownable,IUserRelation {
     function quitBroker() external returns(bool) {
         UserInfo storage userInfo = users[msg.sender];
         require(userInfo.isBroker,  "UserRelation: invalid  user address");
-        require(IERC20(dftToken).transfer(msg.sender, 10000 * 10 ** 18), "transferFrom error");
+        require(IERC20(dftToken).transfer(msg.sender, userInfo.brokerCash), "transferFrom error");
         userInfo.isBroker = false;
         emit QuitBroker(msg.sender);
         return true;
@@ -111,7 +109,7 @@ contract UserRelation is Ownable,IUserRelation {
         UserInfo memory userInfo = users[user];
         superior  = userInfo.superior;
         isBroker  = userInfo.isBroker;
-        isBind =  userInfo.bind;
+        isBind =  userInfo.superior != address(0);
         rewardRate = userInfo.rewardRate;
     }
 
@@ -125,6 +123,10 @@ contract UserRelation is Ownable,IUserRelation {
 
     function setDefaultRewardRate(uint8 _defaultRewardRate)external  onlyOwner{
         defaultRewardRate = _defaultRewardRate;
+    }
+
+    function setInBrokerCash(uint256 _inBrokerCash)external  onlyOwner{
+        inBrokerCash = _inBrokerCash;
     }
 
     function getBrokerRole(address user) external view returns(uint8 role) {

@@ -32,12 +32,13 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
 
     mapping(address => uint256) public superiorShares; 
     mapping(address => uint256) public brokerShares; 
+    mapping(address => bool) public sharerAddress; 
     uint256 public deadlineTime;
     uint256 public treasuryAmount; //给合约维护者的返佣
 
     uint256 public TOTAL_RATE = 100; // 100%
     uint256 public dfvRate = 20; // dfv比例
-    uint256 public treasuryRate = 80; // 80
+    uint256 public brokerRate = 20; // dfv比例
 
     address[] public swapTokens;
     
@@ -63,6 +64,7 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
     }
 
     function predictionBet(address source, uint256 tradeAmount, uint256 relAmount) external payable override {
+        require(sharerAddress[msg.sender], "not sharerAddress");
         require(relAmount >  0 &&  IERC20(shareToken).transferFrom(msg.sender, address(this), relAmount), 
             "transferFrom error"
         );
@@ -75,7 +77,7 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
         (, bool isBroker2,,) =  IUserRelation(userRelation).getUserInfo(superior1);
         uint256 amount;
         if(isBroker2) {
-            amount = relAmount.mul(70).div(100);
+            amount = relAmount.mul(brokerRate).div(TOTAL_RATE);
             treasuryAmount = treasuryAmount.add(relAmount.sub(amount));
             uint256 superiorReward = amount.mul(rewardRate1).div(100);
             brokerShares[superior]  = brokerShares[superior].add(superiorReward);
@@ -83,7 +85,7 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
             emit PredictionBet(source, superior, tradeAmount, relAmount , superiorReward, 1);
             emit PredictionBet(superior, superior1, 0, 0, amount.sub(superiorReward), 2);
         } else if(isBroker1) {
-            amount = relAmount.mul(70).div(100);
+            amount = relAmount.mul(brokerRate).div(TOTAL_RATE);
             treasuryAmount = treasuryAmount.add(relAmount.sub(amount));
             brokerShares[superior]  = brokerShares[superior].add(amount);
             emit PredictionBet(source, superior, tradeAmount, relAmount, amount, 1);
@@ -156,17 +158,20 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
     function setDfvRate(uint256 _dfvRate) external onlyOwner {
         require(_dfvRate <= TOTAL_RATE, "rewardRate cannot be more than 100%");
         dfvRate = _dfvRate;
-        treasuryRate = TOTAL_RATE.sub(_dfvRate);
     }
 
-    /**
-     * @dev set treasury rate
+        /**
+     * @dev set reward rate /设置盈利率
      * callable by admin
      */
-    function setTreasuryRate(uint256 _treasuryRate) external onlyOwner {
-        require(_treasuryRate <= TOTAL_RATE, "treasuryRate cannot be more than 100%");
-        dfvRate = TOTAL_RATE.sub(_treasuryRate);
-        treasuryRate = _treasuryRate;
+    function setBrokerRate(uint256 _brokerRate) external onlyOwner {
+        require(_brokerRate <= TOTAL_RATE, "rewardRate cannot be more than 100%");
+        dfvRate = _brokerRate;
+    }
+
+    function setUserRelation(address _userRelation) external onlyOwner {
+        require(_userRelation != address(0), "address error");
+        userRelation = _userRelation;
     }
 
     function claimTreasury() external payable onlyOwner {
@@ -180,5 +185,9 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
         require(_swapTokens[0] == shareToken && _swapTokens[_swapTokens.length -1] == defxToken, "_swapTokens error");
         delete swapTokens;
         swapTokens = _swapTokens;
+    }
+
+    function setSharerAddress(address user, bool allow) external onlyOwner {
+        sharerAddress[user] = allow;
     }
 }

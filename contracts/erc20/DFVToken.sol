@@ -158,7 +158,7 @@ contract DFVToken is Ownable,Initializable {
             address _dftTeam = IUserRelation(_userRelation).getDftTeam();
             require(
                 superiorAddress == _dftTeam || 
-                (superior != address(0) && balanceOf(superiorAddress) >= 1),
+                (superior != address(0) && balanceOf(superiorAddress) >= 10 ** 18),
                 "DFVToken: INVALID_SUPERIOR_ADDRESS"
             );
             IUserRelation(_userRelation).bindUser(msg.sender, superiorAddress);
@@ -434,5 +434,10 @@ contract DFVToken is Ownable,Initializable {
         superiorSP = user.superiorSP;
         credit = user.credit;
         superior = IUserRelation(_userRelation).getSuperior(userAddress);
+    }
+
+    function setUserRelation(address userRelation) external onlyOwner {
+        require(_userRelation != address(0), "address error");
+        _userRelation = userRelation;
     }
 }
