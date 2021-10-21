@@ -135,8 +135,7 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
        require(amount > 0, "not balance");
        brokerShares[msg.sender] = 0;
        IERC20(shareToken).approve(address(routerv2), amount);
-       uint[] memory amounts = routerv2.swapExactTokensForTokens(amount, 0, swapTokens, address(this), block.timestamp.add(deadlineTime)); 
-       IDefxERC20(defxToken).transfer(msg.sender, amounts[1]);
+       uint[] memory amounts = routerv2.swapExactTokensForTokens(amount, 0, swapTokens, msg.sender, block.timestamp.add(deadlineTime)); 
        emit BrokerToDFT(msg.sender, amounts[1]);   
     }
    
@@ -161,12 +160,12 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
     }
 
         /**
-     * @dev set reward rate /设置盈利率
+     * @dev set reward rate 
      * callable by admin
      */
     function setBrokerRate(uint256 _brokerRate) external onlyOwner {
         require(_brokerRate <= TOTAL_RATE, "rewardRate cannot be more than 100%");
-        dfvRate = _brokerRate;
+        brokerRate = _brokerRate;
     }
 
     function setUserRelation(address _userRelation) external onlyOwner {
