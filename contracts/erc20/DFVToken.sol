@@ -322,7 +322,7 @@ contract DFVToken is Ownable,Initializable {
 
         uint256 x =
         DecimalMath.divCeil(
-            IERC20(_dftToken).totalSupply() * 100,
+          totalSupply() * 100,
             dftCirculationAmount
         );
 
