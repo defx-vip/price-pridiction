@@ -149,9 +149,7 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
             rewardRate = _rewardRate;
             treasuryRate = _treasuryRate;
             oracleUpdateAllowance = _oracleUpdateAllowance;
-            nftTokenFactory = _nftTokenFactory;
-            approveToStakingAddress();
-            
+            nftTokenFactory = _nftTokenFactory;        
     }
 
     /**
