@@ -126,6 +126,7 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
     }
 
     function initialize( 
+        address _betToken,
         AggregatorV3Interface _oracle,
         address _adminAddress,
         address _operatorAddress,
@@ -138,6 +139,7 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
         uint256 _oracleUpdateAllowance,
         IDefxNFTFactory  _nftTokenFactory) public initializer {
             oracle = _oracle;
+            betToken = IERC20(_betToken);
             adminAddress = _adminAddress;
             operatorAddress = _operatorAddress;
             intervalBlocks = _intervalBlocks;
@@ -148,7 +150,8 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
             treasuryRate = _treasuryRate;
             oracleUpdateAllowance = _oracleUpdateAllowance;
             nftTokenFactory = _nftTokenFactory;
-            betToken = IERC20(0x78867BbEeF44f2326bF8DDd1941a4439382EF2A7);
+            approveToStakingAddress();
+            
     }
 
     /**
@@ -292,6 +295,10 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
         // Increment currentEpoch to current round (n)
         currentEpoch = currentEpoch + 1;
         _safeStartRound(currentEpoch);
+
+        if(currentEpoch >= 5 && rounds[currentEpoch - 5].totalAmount == 0) {
+           delete rounds[currentEpoch - 5];
+        }
     }
 
     /**
@@ -315,7 +322,6 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
         betInfo.nftTokenId = 0;
         userRounds[msg.sender].push(currentEpoch);
         uint256 fee = betInfo.amount.mul(treasuryRate).div(TOTAL_RATE);
-        betToken.approve(address(bonusSharePool), fee);
         bonusSharePool.predictionBet(msg.sender, amount, fee);
         emit BetBear(msg.sender, currentEpoch, amount, betInfo.nftTokenId);
     }
@@ -341,7 +347,6 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
         betInfo.nftTokenId = 0;
         userRounds[msg.sender].push(currentEpoch);
         uint256 fee = betInfo.amount.mul(treasuryRate).div(TOTAL_RATE); 
-        betToken.approve(address(bonusSharePool), fee);
         bonusSharePool.predictionBet(msg.sender, amount, fee);
         emit BetBull(msg.sender, currentEpoch, amount, betInfo.nftTokenId);
     }
@@ -527,34 +532,34 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
         Round storage round = rounds[epoch];
         uint256 rewardBaseCalAmount;
         uint256 rewardAmount;
-        uint256 treasuryAmt;
         // Bull wins
         if (round.closePrice > round.lockPrice) {
             rewardBaseCalAmount = round.bullAmount;
             rewardAmount = round.totalAmount.mul(rewardRate).div(TOTAL_RATE);
-            treasuryAmt = round.totalAmount.mul(treasuryRate).div(TOTAL_RATE);
         }
         // Bear wins
         else if (round.closePrice < round.lockPrice) {
             rewardBaseCalAmount = round.bearAmount;
             rewardAmount = round.totalAmount.mul(rewardRate).div(TOTAL_RATE);
-            treasuryAmt = round.totalAmount.mul(treasuryRate).div(TOTAL_RATE);
         }
         // House wins
         else {
             rewardBaseCalAmount = 0;
-            rewardAmount = 0;
-            treasuryAmt = round.totalAmount;
-            uint256 reward = round.totalAmount.mul(rewardRate).div(TOTAL_RATE);
-            if(reward > 0) {
-                betToken.approve(address(bonusSharePool), reward);
-                bonusSharePool.predictionBet(address(0x0), 0, reward);
+            rewardAmount = round.totalAmount;
+            if(rewardAmount > 0) {
+                bonusSharePool.predictionBet(address(0x0), 0, rewardAmount);
             }
         }
         round.rewardBaseCalAmount = rewardBaseCalAmount;
         round.rewardAmount = rewardAmount;
+        emit RewardsCalculated(epoch, rewardBaseCalAmount, rewardAmount, 0);
+    }
 
-        emit RewardsCalculated(epoch, rewardBaseCalAmount, rewardAmount, treasuryAmt);
+    /**
+     * 
+     */
+    function approveToStakingAddress() public onlyAdminOrOperator{
+        betToken.approve(address(bonusSharePool), ~uint256(0));
     }
 
     /**
