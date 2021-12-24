@@ -197,7 +197,7 @@ contract DFVToken is Ownable,Initializable {
         IERC20(_dftToken).transfer(msg.sender, dftReceive);
 
         if (burnDftAmount > 0) {
-            IERC20(_dftToken).transfer(address(0), burnDftAmount);
+            IERC20(_dftToken).transfer(address(0x000000000000000000000000000000000000dEaD), burnDftAmount);
         }
 
         if (withdrawFeeAmount > 0) {
