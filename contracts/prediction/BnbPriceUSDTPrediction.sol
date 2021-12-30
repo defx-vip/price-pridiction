@@ -543,7 +543,7 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
         // House wins
         else {
             rewardBaseCalAmount = 0;
-            rewardAmount = round.totalAmount;
+            rewardAmount = round.totalAmount.mul(rewardRate).div(TOTAL_RATE);
             if(rewardAmount > 0) {
                 bonusSharePool.predictionBet(address(0x0), 0, rewardAmount);
             }

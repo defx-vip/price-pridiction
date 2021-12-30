@@ -46,7 +46,7 @@ contract DefxNFTFactory is Governance, Initializable{
     uint256 public lastTokenId;
     uint256 public _qualityBase = 10000;
     DefxNFT public nft ;
-    mapping(address => bool) public _minters;
+    mapping(address => bool) public _operators;
     mapping(uint256 => DEFXToken) public _aolis;
 
      /**
@@ -56,7 +56,7 @@ contract DefxNFTFactory is Governance, Initializable{
     function initialize(address _nft, uint256 qualityBase) public initializer  {
         _qualityBase = qualityBase;
         nft = DefxNFT(_nft);
-       _minters[msg.sender] = true;
+       _operators[msg.sender] = true;
        _governance = msg.sender;
     }
 
@@ -64,16 +64,12 @@ contract DefxNFTFactory is Governance, Initializable{
         nft = _nft;
     }
 
-    function addMinter(address minter) public onlyGovernance {
-        _minters[minter] = true;
-    }
-
-    function removeMinter(address minter) public onlyGovernance {
-        _minters[minter] = false;
+    function setOperator(address minter, bool allow) public onlyGovernance {
+        _operators[minter] = allow;
     }
 
     function doMint(address author, uint256 resId, uint256 amount) public returns (uint256){
-        require(_minters[msg.sender]  , "can't mint");
+        require(_operators[msg.sender]  , "can't mint");
         require(amount > 0, "must stake defx in nft");
         uint256 seed = _computerSeed();
         ++lastTokenId;
@@ -103,13 +99,6 @@ contract DefxNFTFactory is Governance, Initializable{
         return lastTokenId;
     }
 
-    /**
-     * 放弃 NFT Owner权利
-     */
-    function abandonNFTOwner(address to) public onlyGovernance {
-        nft.transferOwnership(to);
-    }
-
     function updateLastTokenId(uint256 tokenId) external onlyGovernance {
         lastTokenId = tokenId; 
     }
@@ -118,11 +107,9 @@ contract DefxNFTFactory is Governance, Initializable{
         _qualityBase = quality; 
     }
 
-    /**
-     * @dev See {IERC721-safeTransferFrom}.
-     */
+
     function safeTransferFrom(address from, address to, uint256 tokenId) public  {
-        require(_minters[msg.sender], "can't TransferFrom");
+        require(_operators[msg.sender], "can't TransferFrom");
         nft.safeTransferFrom(from, to, tokenId, "");
         emit NFTTransfer(from, to, tokenId);
     }

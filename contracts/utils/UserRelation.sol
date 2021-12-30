@@ -39,7 +39,7 @@ contract UserRelation is Ownable,IUserRelation {
         defaultRewardRate = 20;
     }
 
-    function bindUser(address user, address superior) external  isOperator override returns(bool)  {
+    function bindUser(address user, address superior) external isOperator override returns(bool)  {
         require(
          superior != address(0) && user != superior,
             "UserRelation: Superior INVALID"

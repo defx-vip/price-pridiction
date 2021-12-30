@@ -69,15 +69,15 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
             "transferFrom error"
         );
         (address superior,,,) =  IUserRelation(userRelation).getUserInfo(source);
-        if(source == address(0x0) || superior == address(0x0)) {
+        address team = IUserRelation(userRelation).getDftTeam();
+        if(source == address(0x0) || superior == address(0x0) || superior == team) {
           treasuryAmount = treasuryAmount.add(relAmount);  
           return;  
         }
         (address superior1, bool isBroker1, ,uint8 rewardRate1) =  IUserRelation(userRelation).getUserInfo(superior);
         (, bool isBroker2,,) =  IUserRelation(userRelation).getUserInfo(superior1);
-        uint256 amount;
         if(isBroker2) {
-            amount = relAmount.mul(brokerRate).div(TOTAL_RATE);
+            uint256 amount = relAmount.mul(brokerRate).div(TOTAL_RATE);
             treasuryAmount = treasuryAmount.add(relAmount.sub(amount));
             uint256 superiorReward = amount.mul(rewardRate1).div(100);
             brokerShares[superior]  = brokerShares[superior].add(superiorReward);
@@ -85,12 +85,12 @@ contract TokenBonusSharePool is ITokenBonusSharePool,Ownable {
             emit PredictionBet(source, superior, tradeAmount, relAmount , superiorReward, 1);
             emit PredictionBet(superior, superior1, 0, 0, amount.sub(superiorReward), 2);
         } else if(isBroker1) {
-            amount = relAmount.mul(brokerRate).div(TOTAL_RATE);
+            uint256 amount = relAmount.mul(brokerRate).div(TOTAL_RATE);
             treasuryAmount = treasuryAmount.add(relAmount.sub(amount));
             brokerShares[superior]  = brokerShares[superior].add(amount);
             emit PredictionBet(source, superior, tradeAmount, relAmount, amount, 1);
         } else {
-            amount = relAmount.mul(dfvRate).div(TOTAL_RATE);
+            uint256 amount = relAmount.mul(dfvRate).div(TOTAL_RATE);
             treasuryAmount = treasuryAmount.add(relAmount.sub(amount));
             superiorShares[superior]  = superiorShares[superior].add(amount);
             emit PredictionBet(source, superior, tradeAmount, relAmount, amount, 0);
