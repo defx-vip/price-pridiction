@@ -26,6 +26,7 @@ contract DefxNFT  is ERC721, AccessControl, Ownable  {
     constructor() ERC721('DFT NFT', 'DFT') {
         _setupRole(UPDATE_TOKEN_URI_ROLE, _msgSender());
         _setupRole(MINT_ROLE, _msgSender());
+        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
     }
 
     function mint(address to, uint256 tokenId) public onlyRole(MINT_ROLE) {
