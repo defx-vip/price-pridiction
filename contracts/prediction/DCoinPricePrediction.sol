@@ -376,7 +376,7 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
     }
 
     function setNftMinimumAmount(uint256 _nftMinimumAmount) external onlyAdminOrOperator {
-        require(_nftMinimumAmount < 10, "nftMinimumAmount error");
+        require(_nftMinimumAmount < 10 * 10**18, "nftMinimumAmount error");
         nftMinimumAmount = _nftMinimumAmount;
     }
     /**

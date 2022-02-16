@@ -1,6 +1,6 @@
 // File: contracts/interface/AggregatorV3Interface.sol
 
-
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 interface AggregatorV3Interface {
@@ -625,12 +625,20 @@ interface IERC20 {
     event Approval(address indexed owner, address indexed spender, uint256 value);
 }
 
-// File: contracts/prediction/DCoinPricePrediction.sol
+// File: contracts/prediction/BnbPriceUSDTPrediction.sol
 
 
 pragma solidity ^0.8.0;
 
-contract DCoinPricePrediction is Ownable, Pausable,Initializable {
+
+
+
+
+
+
+
+
+contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
     
     using SafeMath for uint256;
 
@@ -677,11 +685,17 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
 
     uint256 public oracleLatestRoundId;
 
+    uint256 public TOTAL_RATE; // 100%
+
+    uint256 public rewardRate; // 90% 赢家比率
+
+    uint256 public treasuryRate; // 10% 合约维护者佣金比率
+
     uint256 public minBetAmount; //最小投资金额
 
     uint256 public oracleUpdateAllowance; // seconds 允许价格相差的时间
 
-    uint256 public nftMinimumAmount = 100 * 10**18; //产生NFT最小投注数
+    uint256 public nftMinimumAmount = 10**18; //产生NFT最小投注数
 
     mapping(uint256 => Round) public rounds; //期权周期mapping, currentEpoch
 
@@ -692,6 +706,8 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
     IDefxNFTFactory public nftTokenFactory;
 
     AggregatorV3Interface internal oracle; //预言机
+
+    ITokenBonusSharePool public bonusSharePool; //分红
 
     IERC20 public betToken;
 
@@ -747,6 +763,9 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
         uint256 _intervalBlocks,
         uint256 _bufferBlocks,
         uint256 _minBetAmount,
+        uint256 _TOTAL_RATE,
+        uint256 _rewardRate,
+        uint256 _treasuryRate,
         uint256 _oracleUpdateAllowance,
         IDefxNFTFactory  _nftTokenFactory) public initializer {
             oracle = _oracle;
@@ -756,6 +775,9 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
             intervalBlocks = _intervalBlocks;
             bufferBlocks = _bufferBlocks;
             minBetAmount = _minBetAmount;
+            TOTAL_RATE = _TOTAL_RATE;
+            rewardRate = _rewardRate;
+            treasuryRate = _treasuryRate;
             oracleUpdateAllowance = _oracleUpdateAllowance;
             nftTokenFactory = _nftTokenFactory;        
     }
@@ -813,6 +835,30 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
     }
 
     /**
+     * @dev set reward rate /设置盈利率
+     * callable by admin
+     */
+    function setRewardRate(uint256 _rewardRate) external onlyAdmin whenPaused{
+        require(_rewardRate <= TOTAL_RATE, "rewardRate cannot be more than 100%");
+        rewardRate = _rewardRate;
+        treasuryRate = TOTAL_RATE.sub(_rewardRate);
+
+        emit RatesUpdated(currentEpoch, rewardRate, treasuryRate);
+    }
+
+    /**
+     * @dev set treasury rate
+     * callable by admin
+     */
+    function setTreasuryRate(uint256 _treasuryRate) external onlyAdmin {
+        require(_treasuryRate <= TOTAL_RATE, "treasuryRate cannot be more than 100%");
+        rewardRate = TOTAL_RATE.sub(_treasuryRate);
+        treasuryRate = _treasuryRate;
+
+        emit RatesUpdated(currentEpoch, rewardRate, treasuryRate);
+    }
+
+    /**
      * @dev set minBetAmount
      * callable by admin
      */
@@ -820,6 +866,10 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
         minBetAmount = _minBetAmount;
 
         emit MinBetAmountUpdated(currentEpoch, minBetAmount);
+    }
+
+    function setBonusSharePool(address _bonusSharePool) external onlyAdmin{
+        bonusSharePool = ITokenBonusSharePool(_bonusSharePool);
     }
 
     function setBetToken(address _betToken) external onlyAdmin {
@@ -882,7 +932,7 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
     /**
      * @dev Bet bear position
      */
-    function betBear(uint256 amount) external payable whenNotPaused notContract  {
+    function betBear(uint256 amount) external payable whenNotPaused notContract {
         require(_bettable(currentEpoch), "Round not bettable");
         require(amount >= minBetAmount, "Bet amount must be greater than minBetAmount");
         require(betToken.transferFrom(msg.sender, address(this), amount), "transferFrom error");
@@ -898,11 +948,12 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
         betInfo.position = Position.Bear;
         betInfo.amount = amount;
         betInfo.nftTokenId = 0;
-        betInfo.nftTokenId = 0;
         if(amount >= nftMinimumAmount) {
             betInfo.nftTokenId = betInfo.nftTokenId = nftTokenFactory.doMint(msg.sender, getQuality(amount), betInfo.amount);
         }
         userRounds[msg.sender].push(currentEpoch);
+        uint256 fee = betInfo.amount.mul(treasuryRate).div(TOTAL_RATE);
+        bonusSharePool.predictionBet(msg.sender, amount, fee);
         emit BetBear(msg.sender, currentEpoch, amount, betInfo.nftTokenId);
     }
 
@@ -929,22 +980,26 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
             betInfo.nftTokenId = betInfo.nftTokenId = nftTokenFactory.doMint(msg.sender, getQuality(amount), betInfo.amount);
         }
         userRounds[msg.sender].push(currentEpoch);
+        uint256 fee = betInfo.amount.mul(treasuryRate).div(TOTAL_RATE); 
+        bonusSharePool.predictionBet(msg.sender, amount, fee);
         emit BetBull(msg.sender, currentEpoch, amount, betInfo.nftTokenId);
     }
 
-     function getQuality(uint256 amount) public view returns (uint256 quality) {
-        require(amount >= nftMinimumAmount, "amount error");
-        if (amount < 10 * 10**18) return 0;
-        if (amount < 20 * 10**18) return 1;
-        if (amount < 30 * 10**18) return 2;
-        if (amount < 40 * 10**18) return 3;
-        if (amount < 50 * 10**18) return 4;
-        if (amount < 60 * 10**18) return 5;
-        if (amount < 70 * 10**18) return 6;
-        if (amount < 80 * 10**18) return 7;
-        if (amount < 90 * 10**18) return 8;
-        if (amount >= 100 * 10**18) return 9;
+    function getQuality(uint256 amount) public pure returns (uint256 quality) {
+        require(amount > 0, "amount error");
+        if (amount < 1 * 10**18) return 9;
+        if (amount < 2 * 10**18) return 10;
+        if (amount < 3 * 10**18) return 11;
+        if (amount < 4 * 10**18) return 12;
+        if (amount < 5 * 10**18) return 13;
+        if (amount < 6 * 10**18) return 14;
+        if (amount < 7 * 10**18) return 15;
+        if (amount < 8 * 10**18) return 16;
+        if (amount < 9 * 10**18) return 17;
+        if (amount < 10 * 10**18) return 18;
+        if (amount >= 11 * 10**18) return 19;
     }
+
     /**
      * 结算收益
      * @dev Claim reward
@@ -967,7 +1022,7 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
         // Round invalid, refund bet amount
         else {
             require(refundable(epoch, msg.sender), "Not eligible for refund");
-            reward = ledger[epoch][msg.sender].amount;
+            reward = ledger[epoch][msg.sender].amount.mul(rewardRate).div(TOTAL_RATE);
             require(betToken.transfer(msg.sender, reward), "transfer error");
         }
         betInfo.claimed = true;
@@ -996,7 +1051,7 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
     }
 
     function setNftMinimumAmount(uint256 _nftMinimumAmount) external onlyAdminOrOperator {
-        require(_nftMinimumAmount < 10 * 10**18, "nftMinimumAmount error");
+        require(_nftMinimumAmount < 10**18, "nftMinimumAmount error");
         nftMinimumAmount = _nftMinimumAmount;
     }
     /**
@@ -1120,6 +1175,7 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
      * @dev Calculate rewards for round
      */
     function _calculateRewards(uint256 epoch) internal {
+        require(rewardRate.add(treasuryRate) == TOTAL_RATE, "rewardRate and treasuryRate must add up to TOTAL_RATE");
         require(rounds[epoch].rewardBaseCalAmount == 0 && rounds[epoch].rewardAmount == 0, "Rewards calculated");
         Round storage round = rounds[epoch];
         uint256 rewardBaseCalAmount;
@@ -1127,21 +1183,31 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
         // Bull wins
         if (round.closePrice > round.lockPrice) {
             rewardBaseCalAmount = round.bullAmount;
-            rewardAmount = round.totalAmount;
+            rewardAmount = round.totalAmount.mul(rewardRate).div(TOTAL_RATE);
         }
         // Bear wins
         else if (round.closePrice < round.lockPrice) {
             rewardBaseCalAmount = round.bearAmount;
-            rewardAmount = round.totalAmount;
+            rewardAmount = round.totalAmount.mul(rewardRate).div(TOTAL_RATE);
         }
         // House wins
         else {
             rewardBaseCalAmount = 0;
-            rewardAmount = round.totalAmount;
+            rewardAmount = round.totalAmount.mul(rewardRate).div(TOTAL_RATE);
+            if(rewardAmount > 0) {
+                bonusSharePool.predictionBet(address(0x0), 0, rewardAmount);
+            }
         }
         round.rewardBaseCalAmount = rewardBaseCalAmount;
         round.rewardAmount = rewardAmount;
         emit RewardsCalculated(epoch, rewardBaseCalAmount, rewardAmount, 0);
+    }
+
+    /**
+     * 
+     */
+    function approveToStakingAddress() public onlyAdminOrOperator{
+        betToken.approve(address(bonusSharePool), ~uint256(0));
     }
 
     /**
