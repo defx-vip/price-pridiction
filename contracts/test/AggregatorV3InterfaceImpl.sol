@@ -64,4 +64,9 @@ contract AggregatorV3InterfaceImpl is AggregatorV3Interface{
     function setRundPrice(int256 _rundPrice) public{
         rundPrice = _rundPrice;
     }
+
+    function latestRound() external pure override returns(uint80 roundId) {
+        return 90;
+    }
+   
 }

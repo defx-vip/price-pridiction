@@ -67,6 +67,8 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
 
     uint256 public oracleUpdateAllowance; // seconds 允许价格相差的时间
 
+    uint256 public nftMinimumAmount = 10**18; //产生NFT最小投注数
+
     mapping(uint256 => Round) public rounds; //期权周期mapping, currentEpoch
 
     mapping(uint256 => mapping(address => BetInfo)) public ledger; //期权周期=>用户下注详细
@@ -318,6 +320,9 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
         betInfo.position = Position.Bear;
         betInfo.amount = amount;
         betInfo.nftTokenId = 0;
+        if(amount >= nftMinimumAmount) {
+            betInfo.nftTokenId = betInfo.nftTokenId = nftTokenFactory.doMint(msg.sender, getQuality(amount), betInfo.amount);
+        }
         userRounds[msg.sender].push(currentEpoch);
         uint256 fee = betInfo.amount.mul(treasuryRate).div(TOTAL_RATE);
         bonusSharePool.predictionBet(msg.sender, amount, fee);
@@ -343,33 +348,47 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
         betInfo.position = Position.Bull;
         betInfo.amount = amount;
         betInfo.nftTokenId = 0;
+        if(amount >= nftMinimumAmount) {
+            betInfo.nftTokenId = betInfo.nftTokenId = nftTokenFactory.doMint(msg.sender, getQuality(amount), betInfo.amount);
+        }
         userRounds[msg.sender].push(currentEpoch);
         uint256 fee = betInfo.amount.mul(treasuryRate).div(TOTAL_RATE); 
         bonusSharePool.predictionBet(msg.sender, amount, fee);
         emit BetBull(msg.sender, currentEpoch, amount, betInfo.nftTokenId);
     }
 
+    function getQuality(uint256 amount) public pure returns (uint256 quality) {
+        require(amount > 0, "amount error");
+        if (amount < 1 * 10**18) return 9;
+        if (amount < 2 * 10**18) return 10;
+        if (amount < 3 * 10**18) return 11;
+        if (amount < 4 * 10**18) return 12;
+        if (amount < 5 * 10**18) return 13;
+        if (amount < 6 * 10**18) return 14;
+        if (amount < 7 * 10**18) return 15;
+        if (amount < 8 * 10**18) return 16;
+        if (amount < 9 * 10**18) return 17;
+        if (amount < 10 * 10**18) return 18;
+        if (amount >= 11 * 10**18) return 19;
+    }
+
     /**
      * 结算收益
      * @dev Claim reward
      */
-    function claim(uint256 epoch) external payable notContract returns(uint256){
+    function claim(uint256 epoch) external payable notContract{
         require(rounds[epoch].startBlock != 0, "Round has not started");
         require(block.number > rounds[epoch].endBlock, "Round has not ended");
         require(!ledger[epoch][msg.sender].claimed, "Rewards claimed");
         require(ledger[epoch][msg.sender].amount > 0, "not bet");
         BetInfo storage betInfo = ledger[epoch][msg.sender];
         uint256 reward;
-        uint256 nftToken = 0;
         // Round valid, claim rewards
         if (rounds[epoch].oracleCalled) {
             if(claimable(epoch, msg.sender)) {
                 Round memory round = rounds[epoch];
                 reward = ledger[epoch][msg.sender].amount.mul(round.rewardAmount).div(round.rewardBaseCalAmount);
                 require(betToken.transfer(msg.sender, reward), "transfer error");
-            } else {
-                betInfo.nftTokenId = nftTokenFactory.doMint(msg.sender, currentEpoch, betInfo.amount);
-                nftToken = betInfo.nftTokenId;
             }
         } 
         // Round invalid, refund bet amount
@@ -380,7 +399,6 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
         }
         betInfo.claimed = true;
         emit Claim(msg.sender, epoch, reward, betInfo.nftTokenId);
-        return nftToken;
     }
 
     /**
@@ -404,6 +422,10 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
         emit Unpause(currentEpoch);
     }
 
+    function setNftMinimumAmount(uint256 _nftMinimumAmount) external onlyAdminOrOperator {
+        require(_nftMinimumAmount < 10**18, "nftMinimumAmount error");
+        nftMinimumAmount = _nftMinimumAmount;
+    }
     /**
      * @dev Return round epochs that a user has participated
      */

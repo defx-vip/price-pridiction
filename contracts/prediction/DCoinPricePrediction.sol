@@ -61,6 +61,8 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
 
     uint256 public oracleUpdateAllowance; // seconds 允许价格相差的时间
 
+    uint256 public nftMinimumAmount = 100 * 10**18; //产生NFT最小投注数
+
     mapping(uint256 => Round) public rounds; //期权周期mapping, currentEpoch
 
     mapping(uint256 => mapping(address => BetInfo)) public ledger; //期权周期=>用户下注详细
@@ -260,7 +262,7 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
     /**
      * @dev Bet bear position
      */
-    function betBear(uint256 amount) external payable whenNotPaused notContract {
+    function betBear(uint256 amount) external payable whenNotPaused notContract  {
         require(_bettable(currentEpoch), "Round not bettable");
         require(amount >= minBetAmount, "Bet amount must be greater than minBetAmount");
         require(betToken.transferFrom(msg.sender, address(this), amount), "transferFrom error");
@@ -276,6 +278,10 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
         betInfo.position = Position.Bear;
         betInfo.amount = amount;
         betInfo.nftTokenId = 0;
+        betInfo.nftTokenId = 0;
+        if(amount >= nftMinimumAmount) {
+            betInfo.nftTokenId = betInfo.nftTokenId = nftTokenFactory.doMint(msg.sender, getQuality(amount), betInfo.amount);
+        }
         userRounds[msg.sender].push(currentEpoch);
         emit BetBear(msg.sender, currentEpoch, amount, betInfo.nftTokenId);
     }
@@ -299,31 +305,43 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
         betInfo.position = Position.Bull;
         betInfo.amount = amount;
         betInfo.nftTokenId = 0;
+        if(amount >= nftMinimumAmount) {
+            betInfo.nftTokenId = betInfo.nftTokenId = nftTokenFactory.doMint(msg.sender, getQuality(amount), betInfo.amount);
+        }
         userRounds[msg.sender].push(currentEpoch);
         emit BetBull(msg.sender, currentEpoch, amount, betInfo.nftTokenId);
     }
 
+     function getQuality(uint256 amount) public view returns (uint256 quality) {
+        require(amount >= nftMinimumAmount, "amount error");
+        if (amount < 10 * 10**18) return 0;
+        if (amount < 20 * 10**18) return 1;
+        if (amount < 30 * 10**18) return 2;
+        if (amount < 40 * 10**18) return 3;
+        if (amount < 50 * 10**18) return 4;
+        if (amount < 60 * 10**18) return 5;
+        if (amount < 70 * 10**18) return 6;
+        if (amount < 80 * 10**18) return 7;
+        if (amount < 90 * 10**18) return 8;
+        if (amount >= 100 * 10**18) return 9;
+    }
     /**
      * 结算收益
      * @dev Claim reward
      */
-    function claim(uint256 epoch) external payable notContract returns(uint256){
+    function claim(uint256 epoch) external payable notContract{
         require(rounds[epoch].startBlock != 0, "Round has not started");
         require(block.number > rounds[epoch].endBlock, "Round has not ended");
         require(!ledger[epoch][msg.sender].claimed, "Rewards claimed");
         require(ledger[epoch][msg.sender].amount > 0, "not bet");
         BetInfo storage betInfo = ledger[epoch][msg.sender];
         uint256 reward;
-        uint256 nftToken = 0;
         // Round valid, claim rewards
         if (rounds[epoch].oracleCalled) {
             if(claimable(epoch, msg.sender)) {
                 Round memory round = rounds[epoch];
                 reward = ledger[epoch][msg.sender].amount.mul(round.rewardAmount).div(round.rewardBaseCalAmount);
                 require(betToken.transfer(msg.sender, reward), "transfer error");
-            } else {
-                betInfo.nftTokenId = nftTokenFactory.doMint(msg.sender, currentEpoch, betInfo.amount);
-                nftToken = betInfo.nftTokenId;
             }
         } 
         // Round invalid, refund bet amount
@@ -334,7 +352,6 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
         }
         betInfo.claimed = true;
         emit Claim(msg.sender, epoch, reward, betInfo.nftTokenId);
-        return nftToken;
     }
 
     /**
@@ -358,6 +375,10 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
         emit Unpause(currentEpoch);
     }
 
+    function setNftMinimumAmount(uint256 _nftMinimumAmount) external onlyAdminOrOperator {
+        require(_nftMinimumAmount < 10, "nftMinimumAmount error");
+        nftMinimumAmount = _nftMinimumAmount;
+    }
     /**
      * @dev Return round epochs that a user has participated
      */
@@ -479,7 +500,6 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
      * @dev Calculate rewards for round
      */
     function _calculateRewards(uint256 epoch) internal {
-      
         require(rounds[epoch].rewardBaseCalAmount == 0 && rounds[epoch].rewardAmount == 0, "Rewards calculated");
         Round storage round = rounds[epoch];
         uint256 rewardBaseCalAmount;

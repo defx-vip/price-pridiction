@@ -68,10 +68,10 @@ contract DefxNFTFactory is Governance, Initializable{
         _operators[minter] = allow;
     }
 
-    function doMint(address author, uint256 resId, uint256 amount) public returns (uint256){
+    function doMint(address author, uint256 quality, uint256 amount) public returns (uint256){
         require(_operators[msg.sender]  , "can't mint");
         require(amount > 0, "must stake defx in nft");
-        uint256 seed = _computerSeed();
+     
         ++lastTokenId;
         DEFXToken memory defxInfo;
         defxInfo.id = lastTokenId;
@@ -79,8 +79,7 @@ contract DefxNFTFactory is Governance, Initializable{
         defxInfo.author = author;
         defxInfo.blockNum = block.number;
         defxInfo.createdTime = block.timestamp;
-        defxInfo.resId = resId;
-        defxInfo.quality = seed % _qualityBase;
+        defxInfo.quality = quality;
         defxInfo.grade = getGrade( defxInfo.quality );
         _aolis[lastTokenId] = defxInfo;
         nft.mint(author, lastTokenId);
@@ -127,19 +126,8 @@ contract DefxNFTFactory is Governance, Initializable{
     }
 
     function getGrade(uint256 quality) public view returns (uint256){
-        if( quality < _qualityBase.mul(500).div(1000)){
-            return 1;
-        }else if( _qualityBase.mul(500).div(1000) <= quality && quality <  _qualityBase.mul(800).div(1000)){
-            return 2;
-        }else if( _qualityBase.mul(800).div(1000) <= quality && quality <  _qualityBase.mul(900).div(1000)){
-            return 3;
-        }else if( _qualityBase.mul(900).div(1000) <= quality && quality <  _qualityBase.mul(980).div(1000)){
-            return 4;
-        }else if( _qualityBase.mul(980).div(1000) <= quality && quality <  _qualityBase.mul(998).div(1000)){
-            return 5;
-        }else{
-            return 6;
-        }
+       
+        return quality % _qualityBase + 1;
     }
 
     function ownerOf(uint256 tokenId) external view virtual  returns (address) {
