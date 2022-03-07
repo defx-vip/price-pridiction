@@ -1,13 +1,13 @@
-const {expect} = require("chai");
-const { ethers } = require("_hardhat@2.5.0@hardhat");
+import { expect } from './shared/expect'
+import { ethers } from 'hardhat'
 
 describe("BNBPricePrediction", ()=> {
    
     it("测试获取价格", async() => {
         const DefxToken = await ethers.getContractFactory("DefxToken");
         const AggregatorV3InterfaceImpl = await ethers.getContractFactory("AggregatorV3InterfaceImpl");
-        const DefxTokenFactory = await ethers.getContractFactory("DefxTokenFactory");
-        const BnbPricePrediction = await ethers.getContractFactory("BnbPricePrediction");
+        const DefxTokenFactory = await ethers.getContractFactory("DefxNFTFactory");
+        const BnbPricePrediction = await ethers.getContractFactory("BnbPriceUSDTPrediction");
         //Nft部署
         const defxToken = await DefxToken.deploy();
         await defxToken.deployed();
