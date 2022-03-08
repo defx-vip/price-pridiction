@@ -312,7 +312,7 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
         emit BetBull(msg.sender, currentEpoch, amount, betInfo.nftTokenId);
     }
 
-     function getQuality(uint256 amount) public view returns (uint256 quality) {
+    function getQuality(uint256 amount) public view returns (uint256 quality) {
         require(amount >= nftMinimumAmount, "amount error");
         if (amount < 10 * 10**18) return 0;
         if (amount < 20 * 10**18) return 1;
