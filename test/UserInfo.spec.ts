@@ -16,6 +16,8 @@ describe("UserInfo", () => {
     let user:SignerWithAddress;
     let defxNft: DefxNFT;
     let defxNFTFactory: DefxNFTFactory;
+    const userNftId = 1;
+    const otherNftId = 2;
     before('create fixture loader', async () => {
         const [owner] = await ethers.getSigners();
         user = owner;
@@ -28,10 +30,12 @@ describe("UserInfo", () => {
         userInfo = fixture.userInfo;
         defxNft = fixture.nft;
         defxNFTFactory = fixture.nftFactory;
-        defxNFTFactory.doMint(user.address, 18, 20); // nftId = 1
-        defxNFTFactory.doMint(other.address, 18, 20);//nftId = 2
-        expect(await defxNFTFactory.ownerOf(1)).to.be.eq(user.address)
-        expect(await defxNFTFactory.ownerOf(2)).to.be.eq(other.address)
+        await defxNFTFactory.doMint(user.address, 18, 20); // nftId = 1
+        await defxNFTFactory.doMint(other.address, 18, 20);//nftId = 2
+        await defxNFTFactory.setOperator(userInfo.address, true)
+        defxNft.setApprovalForAll(defxNFTFactory.address, true)
+        expect(await defxNFTFactory.ownerOf(userNftId)).to.be.eq(user.address)
+        expect(await defxNFTFactory.ownerOf(otherNftId)).to.be.eq(other.address)
     });
 
     it('constructor initializes immutables', async () => {
@@ -41,6 +45,12 @@ describe("UserInfo", () => {
     it('set my Nft', async () => {
       await userInfo.setUserNFTId(1);
       expect( (await userInfo.data(user.address)).nftId).to.be.eq(1);
+      expect( await defxNft.ownerOf(userNftId)).to.be.eq(userInfo.address);
+    })
+
+    it('set my NftNull', async () => {
+        await userInfo.setUserNFTNull();
+        expect( await defxNft.ownerOf(1)).to.be.eq(user.address);
     })
 
     it('set not my Nft', async () => {
@@ -61,5 +71,4 @@ describe("UserInfo", () => {
         return  expect(userInfo.setUserNickname(a)).to.eventually.be.rejected;
     })
    
-  
 })
