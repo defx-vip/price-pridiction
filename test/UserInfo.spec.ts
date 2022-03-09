@@ -42,8 +42,9 @@ describe("UserInfo", () => {
     })
 
     it('set my Nft', async () => {
-      await userInfo.setUserNFTId(1);
+      await userInfo.setUserInfo(1, "xxxx");
       expect( (await userInfo.data(user.address)).nftId).to.be.eq(1);
+      expect( (await userInfo.data(user.address)).nickname).to.be.eq("xxxx");
       expect( await defxNft.ownerOf(userNftId)).to.be.eq(userInfo.address);
     })
 

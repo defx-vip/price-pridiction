@@ -3,7 +3,7 @@ import { ethers } from 'hardhat'
 import { DefxNFT } from '../../typechain/DefxNFT'
 import { DefxNFTFactory } from '../../typechain/DefxNFTFactory'
 import {UserInfo} from '../../typechain/UserInfo'
-import {Lucky100Daily} from '../../typechain/Lucky100Daily'
+import {UserBonus} from '../../typechain/UserBonus'
 import {DCoinToken} from '../../typechain/DCoinToken'
 
 export const TEST_POOL_START_TIME = 1601906400
@@ -61,15 +61,15 @@ export async function userInfoFixture(): Promise<UserInfoFixture> {
     return { userInfo,  nftFactory, nft}
 }
 
-interface Lucky100DailyFixture {
-    lucky100Daily: Lucky100Daily,
+interface UserBonusFixture {
+    userBonus: UserBonus,
     nftFactory: DefxNFTFactory,
     userInfo: UserInfo
     token: DCoinToken
     nft: DefxNFT
 }
 
-export async function lucky100DailyFixture(): Promise<Lucky100DailyFixture> {
+export async function userBonusFixture(): Promise<UserBonusFixture> {
     const userFixture:UserInfoFixture = await userInfoFixture();
     const userInfo = userFixture.userInfo;
     const nftFactory = userFixture.nftFactory;
@@ -77,7 +77,7 @@ export async function lucky100DailyFixture(): Promise<Lucky100DailyFixture> {
     const tokenFixture = await dCoinTokenFixture();
     const token = tokenFixture.token;
     
-    const classType = await ethers.getContractFactory('Lucky100Daily')
-    const lucky100Daily = (await classType.deploy(userInfo.address, token.address)) as Lucky100Daily
-    return {token, nftFactory, userInfo, lucky100Daily, nft};
+    const classType = await ethers.getContractFactory('UserBonus')
+    const userBonus = (await classType.deploy(userInfo.address, token.address)) as UserBonus
+    return {token, nftFactory, userInfo, userBonus, nft};
 }
