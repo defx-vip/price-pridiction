@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
-import "../interface/IDefxNFTFactory.sol";
+import "./interface/IDefxNFTFactory.sol";
 
 contract UserInfo { 
     
@@ -13,7 +13,7 @@ contract UserInfo {
     address public nftFactory;
     //Mapping that stores user information
     mapping(address => User) public data;
-
+    
     constructor(address _nftFactory) {
         nftFactory = _nftFactory;
     }
@@ -45,7 +45,7 @@ contract UserInfo {
         return bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"));
     }
 
-     function getUserInfo(address user) external view returns(uint256 nftId, string memory nickname) {
+    function getUserInfo(address user) external view returns(uint256 nftId, string memory nickname) {
          User memory userInfo = data[user];
          nftId = userInfo.nftId;
          nickname = userInfo.nickname;
