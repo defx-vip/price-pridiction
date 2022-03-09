@@ -32,6 +32,7 @@ describe("UserInfo", () => {
         defxNFTFactory = fixture.nftFactory;
         await defxNFTFactory.doMint(user.address, 18, 20); // nftId = 1
         await defxNFTFactory.doMint(other.address, 18, 20);//nftId = 2
+        await defxNFTFactory.doMint(user.address, 18, 20);//nftId = 3
         await defxNFTFactory.setOperator(userInfo.address, true)
         expect(await defxNFTFactory.ownerOf(userNftId)).to.be.eq(user.address)
         expect(await defxNFTFactory.ownerOf(otherNftId)).to.be.eq(other.address)
@@ -45,13 +46,25 @@ describe("UserInfo", () => {
       await userInfo.setUserInfo(1, "xxxx");
       expect( (await userInfo.data(user.address)).nftId).to.be.eq(1);
       expect( (await userInfo.data(user.address)).nickname).to.be.eq("xxxx");
-      expect( await defxNft.ownerOf(userNftId)).to.be.eq(userInfo.address);
+      expect( await defxNft.ownerOf(userNftId)).to.be.eq(defxNFTFactory.address);
+    })
+    it('set copy my Nft', async () => {
+        await userInfo.setUserInfo(1, "xxxx");
+        await userInfo.setUserInfo(1, "xxxxaaa");
+        await userInfo.setUserInfo(1, "xxxxaaa");
+        await userInfo.setUserInfo(3, "xxxx");
+      })
+    it('set two Nft', async () => {
+        await userInfo.setUserInfo(3, "xxxx");
+        expect( await defxNft.ownerOf(1)).to.be.eq(user.address);
     })
 
     it('set my NftNull', async () => {
         await userInfo.setUserNFTNull();
         expect( await defxNft.ownerOf(1)).to.be.eq(user.address);
     })
+
+    
 
     it('set not my Nft', async () => {
        // await userInfo.setUserNFTId(2); 
