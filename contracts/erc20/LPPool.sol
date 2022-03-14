@@ -36,8 +36,6 @@ contract LPPool is Ownable {
     
     uint256 public detTokenPerBlock;
 
-    uint256 public constant BONUS_MULTIPLIER = 1;
-
     PoolInfo[] public poolInfo;
 
     mapping(uint256 => mapping(address => UserInfo)) public userInfo;
