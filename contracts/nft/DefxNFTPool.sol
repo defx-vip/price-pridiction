@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../interface/IDefxNFTFactory.sol";
+import "hardhat/console.sol";
 
 
 contract DefxNFTPool {
@@ -16,7 +17,8 @@ contract DefxNFTPool {
     using SafeMath for uint256;
 
     struct UserInfo {
-       uint256 totalPoint;
+       uint256 totalPoint1;
+       uint256 totalPoint2;
        uint256 rewardToken1Debt;
        uint256 rewardToken2Debt;
        uint256 rewardToken1Amount;
@@ -26,15 +28,18 @@ contract DefxNFTPool {
 
     struct NFTInfo {
         address user;
-        uint256 point;
+        uint256 point1;
+        uint256 point2;
         bool status;
     }
 
     event NFTReceived(address operator, address from, uint256 tokenId, bytes dat);
-    event StakingNFT(address operator, uint256 tokenId, uint256 point);
-    event UnStakingNFT(address operator, uint256 tokenId, uint256 point);
+    event StakingNFT(address operator, uint256 tokenId, uint256 point1, uint256 point2);
+    event UnStakingNFT(address operator, uint256 tokenId, uint256 point1, uint256 point2);
+    event Harvest(address operator, uint256 token1Amount, uint256 token2Amount);
 
-    uint256 public totalAllocPoint = 0;
+    uint256 public totalAllocPoint1 = 0;
+    uint256 public totalAllocPoint2 = 0;
     uint256 public startBlock;
     uint256 public detToken1PerBlock;
     uint256 public detToken2PerBlock;
@@ -44,9 +49,8 @@ contract DefxNFTPool {
     address public token1; //DFT
     address public token2;//DCoin
     address public nftFactory;
-    mapping(address => UserInfo) userInfos;
-    mapping(uint256 => NFTInfo) nftInfos;
-
+    mapping(address => UserInfo) public userInfos;
+    mapping(uint256 => NFTInfo) public nftInfos;
 
     constructor(
         uint256 _startBlock, uint256 _detToken1PerBlock, uint256 _detToken2PerBlock,
@@ -72,27 +76,34 @@ contract DefxNFTPool {
         if(block.number < lastRewardBlock) {
             return;
         }
-        if(totalAllocPoint <= 0) {
-            lastRewardBlock = block.number;
-            return;
-        }
         uint256 multiplier = getMultiplier(lastRewardBlock, block.number);
-        uint256 startToken1Reward = detToken1PerBlock.mul(multiplier);
-        uint256 startToken2Reward = detToken1PerBlock.mul(multiplier);
-        accDetToken1PerShare = accDetToken1PerShare.add(startToken1Reward.mul(1e12).div(totalAllocPoint));
-        accDetToken2PerShare = accDetToken1PerShare.add(startToken2Reward.mul(1e12).div(totalAllocPoint));
+        if(totalAllocPoint1 > 0) {
+            uint256 startToken1Reward = detToken1PerBlock.mul(multiplier);
+            accDetToken1PerShare = accDetToken1PerShare.add(startToken1Reward.mul(1e12).div(totalAllocPoint1));
+        }
+
+        if(totalAllocPoint2 > 0) {
+            uint256 startToken2Reward = detToken2PerBlock.mul(multiplier);
+            accDetToken2PerShare = accDetToken2PerShare.add(startToken2Reward.mul(1e12).div(totalAllocPoint2));
+        }
         lastRewardBlock = block.number;
     }
 
-    function pendingToken(address _user) external returns(uint256 pendingToken1, uint256 pendingToken2) {
+    function pendingToken(address _user) external view returns(uint256 pendingToken1, uint256 pendingToken2)  {
         uint256 multiplier = getMultiplier(lastRewardBlock, block.number);
         uint256 startToken1Reward = detToken1PerBlock.mul(multiplier);
-        uint256 startToken2Reward = detToken1PerBlock.mul(multiplier);
-        accDetToken1PerShare = accDetToken1PerShare.add(startToken1Reward.mul(1e12).div(totalAllocPoint));
-        accDetToken2PerShare = accDetToken2PerShare.add(startToken2Reward.mul(1e12).div(totalAllocPoint));
+        uint256 startToken2Reward = detToken2PerBlock.mul(multiplier);
+        uint256 _accDetToken1PerShare = 0;
+         uint256 _accDetToken2PerShare = 0;
+        if(totalAllocPoint1 > 0) {
+             _accDetToken1PerShare = accDetToken1PerShare.add(startToken1Reward.mul(1e12).div(totalAllocPoint1));
+        }
+        if(totalAllocPoint2 > 0) {
+             _accDetToken2PerShare = accDetToken2PerShare.add(startToken2Reward.mul(1e12).div(totalAllocPoint2));
+        }
         UserInfo memory userInfo = userInfos[_user];
-        pendingToken1 = userInfo.totalPoint.mul(accDetToken1PerShare).div(1e12).sub(userInfo.rewardToken1Debt);
-        pendingToken2 = userInfo.totalPoint.mul(accDetToken2PerShare).div(1e12).sub(userInfo.rewardToken1Debt);
+        pendingToken1 = userInfo.totalPoint1.mul(_accDetToken1PerShare).div(1e12).sub(userInfo.rewardToken1Debt);
+        pendingToken2 = userInfo.totalPoint2.mul(_accDetToken2PerShare).div(1e12).sub(userInfo.rewardToken2Debt);
     }
 
     function staking(uint256 tokenId) external {
@@ -106,24 +117,44 @@ contract DefxNFTPool {
         UserInfo storage userInfo = userInfos[msg.sender];
         uint256 pendingToken1 = 0;
         uint256 pendingToken2 = 0;
-        if(userInfo.totalPoint > 0) {
-            pendingToken1 = userInfo.totalPoint.mul(accDetToken1PerShare).div(1e12).sub(userInfo.rewardToken1Debt);
-            IERC20(token1).transferFrom(address(this), msg.sender, pendingToken1);
-            pendingToken2 = userInfo.totalPoint.mul(accDetToken2PerShare).div(1e12).sub(userInfo.rewardToken2Debt);
-            IERC20(token2).transferFrom(address(this), msg.sender, pendingToken2);
+        if(userInfo.totalPoint1 > 0) {
+            pendingToken1 = userInfo.totalPoint1.mul(accDetToken1PerShare).div(1e12).sub(userInfo.rewardToken1Debt);
+            IERC20(token1).transfer( msg.sender, pendingToken1);
             userInfo.rewardToken1Amount = userInfo.rewardToken1Amount.add(pendingToken1);
+            
+        }
+        if(userInfo.totalPoint2 > 0) {
+            pendingToken2 = userInfo.totalPoint2.mul(accDetToken2PerShare).div(1e12).sub(userInfo.rewardToken2Debt);
+            IERC20(token2).transfer( msg.sender, pendingToken2);
             userInfo.rewardToken2Amount = userInfo.rewardToken2Amount.add(pendingToken2);
         }
         NFTInfo storage nftInfo = nftInfos[tokenId];
-        nftInfo.point = quality;
+        (uint256 token1Point, uint256 token2Point) = getPoint(quality);
+        nftInfo.point1 = token1Point;
+        nftInfo.point2 = token2Point;
         nftInfo.user = msg.sender;
         nftInfo.status = true;
-        totalAllocPoint = totalAllocPoint.add(quality);
-        userInfo.totalPoint = userInfo.totalPoint.add(quality);
-        userInfo.rewardToken1Debt = userInfo.totalPoint.mul(accDetToken1PerShare).div(1e12);
-        userInfo.rewardToken2Debt = userInfo.totalPoint.mul(accDetToken2PerShare).div(1e12);
+       
+        totalAllocPoint1 = totalAllocPoint1.add(token1Point);
+        totalAllocPoint2 = totalAllocPoint2.add(token2Point);
+        userInfo.totalPoint1 = userInfo.totalPoint1.add(token1Point);
+        userInfo.totalPoint2 = userInfo.totalPoint2.add(token2Point);
+        userInfo.rewardToken1Debt = userInfo.totalPoint1.mul(accDetToken1PerShare).div(1e12);
+        userInfo.rewardToken2Debt = userInfo.totalPoint2.mul(accDetToken2PerShare).div(1e12);
         userInfo.nftSize = userInfo.nftSize.add(1);
-        emit StakingNFT(msg.sender, tokenId, quality);
+      
+        //console.log("blockNumber = %s", block.number);
+        emit StakingNFT(msg.sender, tokenId, token1Point, token2Point);
+    }
+
+    function getPoint(uint256 quality) public pure returns(uint256 token1Point, uint256 token2Point) {
+        if(quality <= 9) {
+            token1Point = 0;
+            token2Point = quality.mul(1).add(1);
+        } else {
+            token1Point = quality.mul(1).add(1);
+            token2Point = quality.mul(1).add(1);
+        }
     }
 
     function unstaking(uint256 _tokenId) public {
@@ -135,21 +166,46 @@ contract DefxNFTPool {
         UserInfo storage userInfo = userInfos[msg.sender];
         uint256 pendingToken1 = 0;
         uint256 pendingToken2 = 0;
-        if(userInfo.totalPoint > 0) {
-            pendingToken1 = userInfo.totalPoint.mul(accDetToken1PerShare).div(1e12).sub(userInfo.rewardToken1Debt);
-            IERC20(token1).transferFrom(address(this), msg.sender, pendingToken1);
-            pendingToken2 = userInfo.totalPoint.mul(accDetToken2PerShare).div(1e12).sub(userInfo.rewardToken2Debt);
-            IERC20(token2).transferFrom(address(this), msg.sender, pendingToken2);
+        if(userInfo.totalPoint1 > 0) {
+            pendingToken1 = userInfo.totalPoint1.mul(accDetToken1PerShare).div(1e12).sub(userInfo.rewardToken1Debt);
+            IERC20(token1).transfer( msg.sender, pendingToken1);
             userInfo.rewardToken1Amount = userInfo.rewardToken1Amount.add(pendingToken1);
+        }
+        if(userInfo.totalPoint2 > 0) {
+            pendingToken2 = userInfo.totalPoint2.mul(accDetToken2PerShare).div(1e12).sub(userInfo.rewardToken2Debt);
+            IERC20(token2).transfer(msg.sender, pendingToken2);
             userInfo.rewardToken2Amount = userInfo.rewardToken2Amount.add(pendingToken2);
         }
         nftInfo.status = false;
-        totalAllocPoint = totalAllocPoint.sub(nftInfo.point);
-        userInfo.totalPoint = userInfo.totalPoint.sub(nftInfo.point);
-        userInfo.rewardToken1Debt = userInfo.totalPoint.mul(accDetToken1PerShare).div(1e12);
-        userInfo.rewardToken2Debt = userInfo.totalPoint.mul(accDetToken2PerShare).div(1e12);
+        totalAllocPoint1 = totalAllocPoint1.sub(nftInfo.point1);
+        totalAllocPoint2 = totalAllocPoint2.sub(nftInfo.point2);
+        userInfo.totalPoint1 = userInfo.totalPoint1.sub(nftInfo.point1);
+        userInfo.totalPoint2 = userInfo.totalPoint2.sub(nftInfo.point2);
+        userInfo.rewardToken1Debt = userInfo.totalPoint1.mul(accDetToken1PerShare).div(1e12);
+        userInfo.rewardToken2Debt = userInfo.totalPoint2.mul(accDetToken2PerShare).div(1e12);
         userInfo.nftSize = userInfo.nftSize.sub(1);
-        emit UnStakingNFT(msg.sender, _tokenId, nftInfo.point);
+        emit UnStakingNFT(msg.sender, _tokenId, nftInfo.point1, nftInfo.point2);
+    }
+
+     function harvest() public {
+        updatePool();
+        UserInfo storage userInfo = userInfos[msg.sender];
+        uint256 pendingToken1 = 0;
+        uint256 pendingToken2 = 0;
+        if(userInfo.totalPoint1 > 0) {
+            pendingToken1 = userInfo.totalPoint1.mul(accDetToken1PerShare).div(1e12).sub(userInfo.rewardToken1Debt);
+            IERC20(token1).transfer( msg.sender, pendingToken1);
+            userInfo.rewardToken1Amount = userInfo.rewardToken1Amount.add(pendingToken1);
+        }
+        //console.log("totalPoint2 %s, accDetToken2PerShare %s  totalAllocPoint2 %s ", userInfo.totalPoint2, accDetToken2PerShare, totalAllocPoint2);
+        if(userInfo.totalPoint2 > 0) {
+            pendingToken2 = userInfo.totalPoint2.mul(accDetToken2PerShare).div(1e12).sub(userInfo.rewardToken2Debt);
+            IERC20(token2).transfer(msg.sender, pendingToken2);
+            userInfo.rewardToken2Amount = userInfo.rewardToken2Amount.add(pendingToken2);
+        }
+        userInfo.rewardToken1Debt = userInfo.totalPoint1.mul(accDetToken1PerShare).div(1e12);
+        userInfo.rewardToken2Debt = userInfo.totalPoint2.mul(accDetToken2PerShare).div(1e12);
+        emit Harvest(msg.sender, pendingToken1, pendingToken2);
     }
 
     function onERC721Received(address operator, address from, uint256 tokenId, bytes memory _data) public returns (bytes4) {
