@@ -58,6 +58,8 @@ describe("UserBonus", () => {
     it('execte lucky', async () => {
         await userInfo.setUserNFTId(1)
         await lucky100Daily.excuteLucky()
+        let day = BigNumber.from(new Date().getTime()).div(1000 * 60 * 60 * 24);
+        expect(await lucky100Daily.lotterys(user.address, day)).to.be.gte(BigNumber.from("90000000000000000000"));
         expect (await lucky100Daily.bonusAmounts(user.address)).to.be.gte(BigNumber.from("100000000000000000000")).lte(BigNumber.from("200000000000000000000"))
     })
 
@@ -67,12 +69,24 @@ describe("UserBonus", () => {
     })
 
     it('execte checkin', async () => {
-        let bonusAmount = await lucky100Daily.bonusAmounts(user.address);
-        await lucky100Daily.withdrawBonus(bonusAmount);
         await lucky100Daily.checkin();
         let day = BigNumber.from(new Date().getTime()).div(1000 * 60 * 60 * 24);
-        expect( await lucky100Daily.checkins(user.address, day)).to.be.eq(1);
+        expect(  (await lucky100Daily.checkins(user.address, day)).checkinCount).to.be.eq(1);
+        expect(  (await lucky100Daily.checkins(user.address, day)).bonusAmount).to.be.eq(BigNumber.from("10000000000000000000"));
         expect( await await lucky100Daily.bonusAmounts(user.address)).to.be.eq(BigNumber.from("10000000000000000000"));
+    })
+
+    
+    it('execte withdrawBonus', async () => {
+        await lucky100Daily.checkin();
+        await userInfo.setUserNFTId(1)
+        await lucky100Daily.excuteLucky()
+        let amount =  await lucky100Daily.bonusAmounts(user.address);
+        await lucky100Daily.betting(user.address, amount.mul(10));
+        console.info(`amount = ${amount}`)
+        await lucky100Daily.withdrawBonus(amount);
+        expect(await token.balanceOf(user.address)).to.be.eq(amount.mul(95).div(100))
+        
     })
 
 })
