@@ -168,7 +168,7 @@ interface DEFXCALLFixture  {
     priceCalculator: PriceCalculator
 }
 
-export async function DEFXCALLFixture (): Promise<DEFXCALLFixture> { 
+export async function defxCALLFixture (): Promise<DEFXCALLFixture> { 
     let priceProviderMockFix= await priceProviderMockFixture();
     let priceProviderMock = priceProviderMockFix.priceProviderMock;
     let optionsManagerFix = await optionsManagerFixture();
@@ -201,14 +201,16 @@ export async function priceCalculatorFixture (pool: DEFXPool): Promise<PriceCalc
 }
 
 interface OptionPoolFixture {
-    token: DCoinToken
+    token: DefxToken
     optionPool: OptionPool
+    defxCall: DEFXCALL
 }
 
 export async function optionPoolFixture (): Promise<OptionPoolFixture> { 
-    let dCoinTokenFix= await dCoinTokenFixture();
-    let token = dCoinTokenFix.token;
+    let defxCallFixture = await defxCALLFixture();  
+    let defxCall = defxCallFixture.defxCall;
+    let token = defxCallFixture.token;
     const classType = await ethers.getContractFactory('OptionPool')
     const optionPool = (await classType.deploy(token.address, 10, 0)) as OptionPool;
-    return  {token, optionPool}
+    return  {token, optionPool, defxCall}
 }

@@ -9,6 +9,11 @@ export default {
     hardhat: {
       allowUnlimitedContractSize: false,
     },
+    bsc_test: {
+      url: "https://data-seed-prebsc-2-s2.binance.org:8545/",
+      accounts: ["2775781e649dcbc27bb9764eba4ba1097ff7d76e88990fe1d0362620e6fa0b55"],
+      timeout: 60000
+    },
     mainnet: {
       url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
     },
@@ -31,7 +36,7 @@ export default {
     apiKey: process.env.ETHERSCAN_API_KEY,
   },
   solidity: {
-    version: '0.8.2',
+    version: '0.8.6',
     settings: {
       optimizer: {
         enabled: true,

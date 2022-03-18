@@ -4,9 +4,9 @@
 // When running the script with `npx hardhat run <script>` you'll find the Hardhat
 // Runtime Environment's members available in the global scope.
 import { ethers} from 'hardhat'
-const nftFactoryAddress = "0x4566Cf31B204985259aDb368337D9C8d1ec92E96";
+
 const dcoinAddress = "0x079c29b4f37CEF7DDF6eC68A8BaC48A220eb72Bf";
-const defxAddress = "0x9E0F035628Ce4F5e02ddd14dEa2F7bd92B2A9152";
+const ethPull = "0x400FDC043Cf37988D7c100F8acdeCe3a46362d96";
 import { BigNumber } from 'ethers'
 async function main() {
   // Hardhat always runs the compile task when running scripts with its command
@@ -17,11 +17,12 @@ async function main() {
   // await hre.run('compile');
 
   // We get the contract to deploy
-  const DefxNFTPool = await ethers.getContractFactory("DefxNFTPool");
+  const OptionPool = await ethers.getContractFactory("OptionPool");
    let dfx = BigNumber.from("10000000000000000")
-  const defxNFTPool = await DefxNFTPool.deploy(0, dfx, dfx, defxAddress, dcoinAddress, nftFactoryAddress);
-  await defxNFTPool.deployed();
-  console.log("Greeter deployed to:", defxNFTPool.address);
+  const optionPool = await OptionPool.deploy(dcoinAddress, dfx, 0);
+  await optionPool.deployed();
+  await optionPool.addPool(100, ethPull, true, "ETHCall");
+  console.log("Greeter deployed to:", optionPool.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
