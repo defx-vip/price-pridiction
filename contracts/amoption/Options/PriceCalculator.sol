@@ -37,7 +37,7 @@ contract PriceCalculator is IPriceCalculator, Ownable {
     uint256 internal constant PRICE_MODIFIER_DECIMALS = 1e8;
     uint256 public utilizationRate = 0;
     AggregatorV3Interface public priceProvider;
-    IDEFXPool pool;
+    IDEFXPool public pool;
 
     constructor(
         uint256 initialRate,
@@ -117,13 +117,13 @@ contract PriceCalculator is IPriceCalculator, Ownable {
     function _priceModifier(
         uint256 amount,
         uint256 period,
-        IDEFXPool pool
+        IDEFXPool _pool
     ) internal view returns (uint256 iv) {
-        uint256 poolBalance = pool.totalBalance();
+        uint256 poolBalance = _pool.totalBalance();
         require(poolBalance > 0, "Pool Error: The pool is empty");
         iv = impliedVolRate * period.sqrt();
 
-        uint256 lockedAmount = pool.lockedAmount() + amount;
+        uint256 lockedAmount = _pool.lockedAmount() + amount;
         uint256 utilization = (lockedAmount * 100e8) / poolBalance;
         //如果锁定大于总池40%
         if (utilization > 40e8) {

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.4.22 <0.9.0;
+pragma solidity ^0.8.0;
 import "../interface/IDefxERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -9,6 +9,7 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "../interface/IDefxOptionPool.sol";
 import "../interface/IDefxERC20.sol";
+import "hardhat/console.sol";
 contract OptionPool is Ownable {
     using SafeERC20 for IERC20;
     using Address for address;
@@ -51,11 +52,7 @@ contract OptionPool is Ownable {
     event Staking(address indexed user, uint256 indexed pid, uint256 indexed tokenId,uint256 amount, uint256 profit);
     event UnStaking(address indexed user, uint256 indexed pid, uint256 indexed tokenId,uint256 amount, uint256 profit);
     event Harvest(address operator, uint256 pid, uint256 tokenAmount);
-    event EmergencyWithdraw(
-        address indexed user,
-        uint256 indexed pid,
-        uint256 amount
-    );
+    event NFTReceived(address operator, address from, uint256 tokenId, bytes dat);
     event AddPool(address indexed user, uint256 indexed pid, address _lpToken, string name);
 
     constructor(
@@ -114,6 +111,7 @@ contract OptionPool is Ownable {
             block.number > startBlock ? block.number : startBlock;
         totalAllocPoint = totalAllocPoint.add(_allocPoint);
         IDEFXPool defxPool = IDEFXPool(_lpToken);
+        console.log("_lpToken = %s", _lpToken);
         IDefxERC20 token0 = IDefxERC20( address(defxPool.token()));
         poolInfo.push(
             PoolInfo({
@@ -288,5 +286,16 @@ contract OptionPool is Ownable {
     function safeTokenTransfer(address _to, uint256 _amount) internal {
         require(IERC20(detToken).balanceOf(address(this)) >= _amount, "balance is not enough!");
         IERC20(detToken).transfer(_to, _amount);
+    }
+
+     function onERC721Received(address operator, address from, uint256 tokenId, bytes memory data) public returns (bytes4) {
+        //only receive the _nft staff
+        if(address(this) != operator) {
+            //invalid from nft
+            return 0;
+        }
+        //success
+        emit NFTReceived(operator, from, tokenId, data);
+        return bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"));
     }
 }
