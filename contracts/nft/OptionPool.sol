@@ -39,7 +39,6 @@ contract OptionPool is Ownable {
         string token0symbol;
         uint256 decimals;
         uint256 totalAmount;
-        string lpSymbol;
     }
 
     address public detToken;
@@ -83,8 +82,7 @@ contract OptionPool is Ownable {
             address token0,
             string memory token0symbol,
             uint256 decimals,
-            uint256 totalAmount,
-
+            uint256 totalAmount
         )
     {   
         PoolInfo memory pool = poolInfo[_pid];
