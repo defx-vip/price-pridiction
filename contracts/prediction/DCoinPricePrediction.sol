@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import "../interface/AggregatorV3Interface.sol";
 import "../interface/IDefxNFTFactory.sol";
 import '../interface/ITokenBonusSharePool.sol';
+import '../interface/IUserBonus.sol';
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import '@openzeppelin/contracts/access/Ownable.sol';
 import "@openzeppelin/contracts/security/Pausable.sol";
@@ -42,63 +43,36 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
     }
 
     bool public genesisStartOnce = false; //是否调用初始化开始方法
-
     bool public genesisLockOnce = false; //是否调用初始化锁定方法
-
     uint256 public currentEpoch; //当前周期角标
-
     uint256 public intervalBlocks; //100
-
     uint256 public bufferBlocks; //15
-
     address public adminAddress; //管理员地址
-
     address public operatorAddress; //操作员地址
-
     uint256 public oracleLatestRoundId;
-
     uint256 public minBetAmount; //最小投资金额
-
     uint256 public oracleUpdateAllowance; // seconds 允许价格相差的时间
-
     uint256 public nftMinimumAmount = 100 * 10**18; //产生NFT最小投注数
-
     mapping(uint256 => Round) public rounds; //期权周期mapping, currentEpoch
-
     mapping(uint256 => mapping(address => BetInfo)) public ledger; //期权周期=>用户下注详细
-
     mapping(address => uint256[]) public userRounds; //
-
     IDefxNFTFactory public nftTokenFactory;
-
     AggregatorV3Interface internal oracle; //预言机
-
     IERC20 public betToken;
-
+    IUserBonus public userBonus;
     event StartRound(uint256 indexed epoch, uint256 blockNumber, uint256 intervalBlocks);
-
     event LockRound(uint256 indexed epoch, uint256 blockNumber, int256 price);
-
     event EndRound(uint256 indexed epoch, uint256 blockNumber, int256 price);
-
     event BetBull(address indexed sender, uint256 indexed currentEpoch, uint256 amount, uint256 nftTokenId);
-    
     event BetBear(address indexed sender, uint256 indexed currentEpoch, uint256 amount, uint256 nftTokenId);
-    
     event Claim(address indexed sender, uint256 indexed currentEpoch, uint256 amount, uint256 nftTokenId);
-    
     event RatesUpdated(uint256 indexed epoch, uint256 rewardRate, uint256 treasuryRate);
-    
     event MinBetAmountUpdated(uint256 indexed epoch, uint256 minBetAmount);
-    
     event RewardsCalculated(uint256 indexed epoch, uint256 rewardBaseCalAmount, uint256 rewardAmount, uint256 treasuryAmount);
-    
     event Pause(uint256 epoch);
-    
     event Unpause(uint256 epoch);
 
-
-     modifier onlyAdmin() {
+    modifier onlyAdmin() {
         require(msg.sender == adminAddress, "admin: wut?");
         _;
     }
@@ -128,7 +102,9 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
         uint256 _bufferBlocks,
         uint256 _minBetAmount,
         uint256 _oracleUpdateAllowance,
-        IDefxNFTFactory  _nftTokenFactory) public initializer {
+        IDefxNFTFactory  _nftTokenFactory,
+        address _userBonus
+        ) public initializer {
             oracle = _oracle;
             betToken = IERC20(_betToken);
             adminAddress = _adminAddress;
@@ -137,7 +113,8 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
             bufferBlocks = _bufferBlocks;
             minBetAmount = _minBetAmount;
             oracleUpdateAllowance = _oracleUpdateAllowance;
-            nftTokenFactory = _nftTokenFactory;        
+            nftTokenFactory = _nftTokenFactory;
+            userBonus = IUserBonus(_userBonus);  
     }
 
     /**
@@ -279,6 +256,7 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
         betInfo.amount = amount;
         betInfo.nftTokenId = 0;
         betInfo.nftTokenId = 0;
+        userBonus.betting(msg.sender, amount);
         if(amount >= nftMinimumAmount) {
             betInfo.nftTokenId = betInfo.nftTokenId = nftTokenFactory.doMint(msg.sender, getQuality(amount), betInfo.amount);
         }
@@ -305,6 +283,7 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
         betInfo.position = Position.Bull;
         betInfo.amount = amount;
         betInfo.nftTokenId = 0;
+        userBonus.betting(msg.sender, amount);
         if(amount >= nftMinimumAmount) {
             betInfo.nftTokenId = betInfo.nftTokenId = nftTokenFactory.doMint(msg.sender, getQuality(amount), betInfo.amount);
         }
@@ -431,11 +410,11 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
             uint256 endBlock,
             bool oracleCalled
         ) {
-            if(epoch == 0) {
-                epoch = currentEpoch;
-            }
-            Round memory round = rounds[epoch];
-            return (round.startBlock, round.lockBlock, round.endBlock, round.oracleCalled);
+        if(epoch == 0) {
+            epoch = currentEpoch;
+        }
+        Round memory round = rounds[epoch];
+        return (round.startBlock, round.lockBlock, round.endBlock, round.oracleCalled);
     }
 
     /**

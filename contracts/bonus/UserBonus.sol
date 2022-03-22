@@ -4,8 +4,9 @@ import "../interface/IUserInfo.sol";
 import "../interface/IDefxNFTFactory.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import '@openzeppelin/contracts/access/Ownable.sol';
 
-contract UserBonus {
+contract UserBonus is Ownable {
     using SafeMath for uint256;
     event ExcuteLucky(address user, uint256 tokenId, uint256 bonusAmount);
     event Checkin(address user,uint256 bonusAmount);
@@ -38,13 +39,13 @@ contract UserBonus {
         _;
     }
 
+    function setAllownUpdateBets(address user, bool allown) public onlyOwner{
+        allownUpdateBets[user] = allown;
+    }
+
     function betting(address user, uint256 amount ) public onlyUpdateBetUser {
         betAmounts[user] = betAmounts[user].add(amount);
     }
-
-    // function addBonus(address user, uint256 amount) public onlyUpdateBetUser {
-    //     bonusAmounts[user] = bonusAmounts[user].add(amount);
-    // }
 
     function withdrawBonus(uint256 amount) public {
         require(amount <= betAmounts[msg.sender].div(CHECKIN_BONUS_MULTIPLIER_BET), "error amount");
@@ -116,7 +117,7 @@ contract UserBonus {
         return values;
     }
 
-    function setUserInfo(address _userInfo) public {
+    function setUserInfo(address _userInfo) public onlyOwner{
         userInfo = _userInfo;
     }
 }

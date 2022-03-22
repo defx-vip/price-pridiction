@@ -266,7 +266,7 @@ contract OptionPool is Ownable {
         pool.totalAmount = pool.totalAmount.sub(nft.amount);
         user.amount = user.amount.sub(nft.amount);
         user.rewardDebt = user.amount.mul(pool.accDetTokenPerShare).div(1e12);
-        emit Staking(msg.sender, _pid, _tokenId, nft.amount, pending);
+        emit UnStaking(msg.sender, _pid, _tokenId, nft.amount, pending);
     }
 
     function harvest(uint256 _pid) public { 
