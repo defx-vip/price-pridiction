@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
-import "../nft/DefxNFTFactory.sol";
+import "../erc721/DefxNFTFactory.sol";
 
 contract MockDefxNFTFactory is DefxNFTFactory{
    
