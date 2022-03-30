@@ -54,7 +54,7 @@ contract AggregatorV3InterfaceImpl is AggregatorV3Interface{
             number = (number % (10)).mul(10 ** 8);
             number = number.add(lastPrice).add(block.difficulty);
             int256 price = int256(number);
-            return (18446744073709636774,price, 1620454751, 1620454751, 18446744073709636774 );
+            return (uint80(block.number), price, 1620454751, block.timestamp, 18446744073709636774 );
         }
 
     function setLastPrice(uint256 _lastPrice) public{

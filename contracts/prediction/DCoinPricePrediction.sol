@@ -510,8 +510,8 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
     function _getPriceFromOracle() internal returns (int256) {
         uint256 leastAllowedTimestamp = block.timestamp.add(oracleUpdateAllowance);
         (uint80 roundId, int256 price, , uint256 timestamp, ) = oracle.latestRoundData();
-        require(timestamp <= leastAllowedTimestamp, "Oracle update exceeded max timestamp allowance");
-        require(roundId > oracleLatestRoundId, "Oracle update roundId must be larger than oracleLatestRoundId");
+       //require(timestamp <= leastAllowedTimestamp, "Oracle update exceeded max timestamp allowance");
+       //require(roundId > oracleLatestRoundId, "Oracle update roundId must be larger than oracleLatestRoundId");
         oracleLatestRoundId = uint256(roundId);
         return price;
     }
