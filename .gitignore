@@ -2,6 +2,7 @@
 artifacts/
 node_modules/
 cache/
+typechain/
 
 # Other files and folders
 .settings/
