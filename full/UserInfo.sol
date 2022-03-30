@@ -43,17 +43,20 @@ contract UserInfo {
     }
 
     function setUserNFTId(uint256 _nftId) public {
-       require(_nftId > 0 && IDefxNFTFactory(nftFactory).ownerOf(_nftId) == msg.sender, "nftId error");
-         if(data[msg.sender].nftId != 0)
-            IDefxNFTFactory(nftFactory).safeTransferFrom(address(this), msg.sender, data[msg.sender].nftId);
-        IDefxNFTFactory(nftFactory).safeTransferFrom(msg.sender , address(this), _nftId);
+       require(_nftId > 0 && 
+       (_nftId ==  data[msg.sender].nftId || IDefxNFTFactory(nftFactory).ownerOf(_nftId) == msg.sender), "nftId error");
+        if( data[msg.sender].nftId != _nftId) {
+            IDefxNFTFactory(nftFactory).safeTransferFrom(msg.sender , nftFactory, _nftId);
+            if(data[msg.sender].nftId != 0)
+                IDefxNFTFactory(nftFactory).safeTransferFrom(nftFactory, msg.sender, data[msg.sender].nftId);     
+        } 
         data[msg.sender].nftId = _nftId;
         emit UpdateNFT(msg.sender, _nftId);
     }
 
     function setUserNFTNull() public {
         if(data[msg.sender].nftId != 0)
-            IDefxNFTFactory(nftFactory).safeTransferFrom(address(this), msg.sender, data[msg.sender].nftId);
+            IDefxNFTFactory(nftFactory).safeTransferFrom(nftFactory, msg.sender, data[msg.sender].nftId);
         data[msg.sender].nftId = 0;
         emit UpdateNFT(msg.sender, 0);
     }
