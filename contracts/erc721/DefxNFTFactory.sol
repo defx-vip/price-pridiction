@@ -113,17 +113,6 @@ contract DefxNFTFactory is Governance, Initializable{
         emit NFTTransfer(from, to, tokenId);
     }
 
-    function _computerSeed() private view returns (uint256) {
-       uint256 seed = uint256(keccak256(abi.encodePacked(
-            (block.timestamp).add
-            (block.difficulty).add
-            ((uint256(keccak256(abi.encodePacked(block.coinbase)))) / (block.timestamp)).add
-            (block.gaslimit).add
-            ((uint256(keccak256(abi.encodePacked(msg.sender)))) / (block.timestamp)).add
-            (block.number)
-        )));
-        return seed;
-    }
 
     function getGrade(uint256 quality) public view returns (uint256){
        

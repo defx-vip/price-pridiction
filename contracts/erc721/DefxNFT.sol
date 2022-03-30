@@ -19,8 +19,6 @@ contract DefxNFT  is ERC721, AccessControl, Ownable  {
 
     string public baseUri= "";
 
-    uint256 private resCount = 12;
-
     uint256 constant maxTokenId = 900 * 10**8;
 
     constructor() ERC721('DFT NFT', 'DFT') {
@@ -36,10 +34,6 @@ contract DefxNFT  is ERC721, AccessControl, Ownable  {
 
     function setBaseURI(string memory _baseUri) public onlyRole(UPDATE_TOKEN_URI_ROLE){
          baseUri =_baseUri;
-    }
-
-    function setResCount(uint256 _resCount) public onlyRole(UPDATE_TOKEN_URI_ROLE){
-        resCount = _resCount;
     }
 
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC721, AccessControl) returns (bool) {
