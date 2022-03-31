@@ -70,8 +70,8 @@ contract DefxNFTFactory is Governance, Initializable{
 
     function doMint(address author, uint256 quality, uint256 amount) public returns (uint256){
         require(_operators[msg.sender]  , "can't mint");
-        require(amount > 0, "must stake defx in nft");
-     
+        require(amount > 0, "DefxNFTFacotry: must stake defx in nft");
+        require(quality <= 19, "DefxNFTFacotry: quality error ");
         ++lastTokenId;
         DEFXToken memory defxInfo;
         defxInfo.id = lastTokenId;
