@@ -65,7 +65,7 @@ contract MysteryBox is Initializable,Ownable, ReentrancyGuard, ERC721Pausable{
     mapping(uint256 => uint256) private _lastTransferBlock;
    
 
-    constructor() ERC721('DFT NFT', 'DFT'){
+    constructor() ERC721('DFT MysteryBox', 'DFTBOX'){
         _seed =  block.timestamp;
     }
 
