@@ -13,6 +13,7 @@ import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "../library/TransferHelper.sol";
+import "../interface/IWETH.sol";
 contract NFTMarket is Context, IERC721Receiver, ReentrancyGuard,Initializable, Ownable{
 
     using SafeERC20 for IERC20;
@@ -88,13 +89,13 @@ contract NFTMarket is Context, IERC721Receiver, ReentrancyGuard,Initializable, O
     mapping(address => bool) public _supportCurrency;
     
 
-    function initialize(address payable tipsFeeWallet, address weth) public initializer{
+    function initialize(address payable tipsFeeWallet) public initializer{
     
         _tipsFeeRate = 50;
         _baseRate = 1000;
         _minDurationTime = 5 minutes;
         _tipsFeeWallet = tipsFeeWallet;
-        WETH = weth;
+        WETH = TransferHelper.getETH();
         addSupportCurrency(TransferHelper.getETH());
     }
 
@@ -329,7 +330,7 @@ contract NFTMarket is Context, IERC721Receiver, ReentrancyGuard,Initializable, O
                 payable(msg.sender).transfer(returnBack);
             }
             if(tipsFee > 0) {
-                IERC20(WETH).deposit{value: tipsFee}();
+                IWETH(WETH).deposit{value: tipsFee}();
                 IERC20(WETH).transfer(_tipsFeeWallet, tipsFee);
             }
             obj.seller.transfer(purchase);

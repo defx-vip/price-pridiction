@@ -14,6 +14,8 @@ import {DEFXStaking} from '../../typechain/DEFXStaking'
 import {OptionsManager} from '../../typechain/OptionsManager'
 import {PriceCalculator} from '../../typechain/PriceCalculator'
 import {OptionPool} from '../../typechain/OptionPool'
+import {MysteryBox} from '../../typechain/MysteryBox'
+import {NFTMarket} from '../../typechain/NFTMarket'
 export const TEST_POOL_START_TIME = 1601906400
 import { BigNumber } from 'ethers'
 
@@ -95,7 +97,6 @@ export async function userBonusFixture(): Promise<UserBonusFixture> {
     const nft = userFixture.nft;
     const tokenFixture = await dCoinTokenFixture();
     const token = tokenFixture.token;
-    
     const classType = await ethers.getContractFactory('UserBonus')
     const userBonus = (await classType.deploy(userInfo.address, token.address)) as UserBonus
     return {token, nftFactory, userInfo, userBonus, nft};
@@ -213,4 +214,40 @@ export async function optionPoolFixture (): Promise<OptionPoolFixture> {
     const classType = await ethers.getContractFactory('OptionPool')
     const optionPool = (await classType.deploy(token.address, 10, 0)) as OptionPool;
     return  {token, optionPool, defxCall}
+}
+
+interface MysteryBoxFixture {
+    nft: DefxNFT,
+    nftFactory: DefxNFTFactory
+    mysteryBox:  MysteryBox,
+    dftToken: DefxToken
+}
+
+export async function mysteryBoxFixture (): Promise<MysteryBoxFixture> { 
+    let nftFacotryFixture = await defxNFTFactoryFixture();  
+    let defxTokenFixtureObj = await defxTokenFixture();
+    let dftToken = defxTokenFixtureObj.token;
+    let nft = nftFacotryFixture.nft;
+    let nftFactory = nftFacotryFixture.nftFactory;
+    const classType = await ethers.getContractFactory('MysteryBox')
+    const mysteryBox = (await classType.deploy()) as MysteryBox;
+    return  {nft, nftFactory, mysteryBox, dftToken}
+}
+
+interface NFTMarketFixture {
+    nftMarket: NFTMarket,
+    dftToken: DefxToken,
+    nft: DefxNFT,
+    nftFactory: DefxNFTFactory
+}
+
+export async function nftMarketFixture (): Promise<NFTMarketFixture> { 
+    let nftFacotryFixture = await defxNFTFactoryFixture();  
+    let defxTokenFixtureObj = await defxTokenFixture();
+    let dftToken = defxTokenFixtureObj.token;
+    let nft = nftFacotryFixture.nft;
+    let nftFactory = nftFacotryFixture.nftFactory;
+    const classType = await ethers.getContractFactory('NFTMarket')
+    const nftMarket = (await classType.deploy()) as NFTMarket;
+    return  {nft, nftFactory, nftMarket, dftToken}
 }

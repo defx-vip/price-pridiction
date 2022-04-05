@@ -5,17 +5,16 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import '@openzeppelin/contracts/token/ERC721/extensions/ERC721Pausable.sol';
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import '@openzeppelin/contracts/access/Ownable.sol';
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import '../interface/IDefxNFTFactory.sol';
-import '../interface/IDefxERC20.sol';
 import '../library/Random.sol';
+//import 'hardhat/console.sol';
 contract MysteryBox is Initializable,Ownable, ReentrancyGuard, ERC721Pausable{
     address public immutable deadAddress = 0x000000000000000000000000000000000000dEaD;
     using SafeMath for uint256;
-    using SafeERC20 for IDefxERC20;
+    using SafeERC20 for IERC20;
 
     struct BoxFactory {
         string name;
@@ -61,12 +60,13 @@ contract MysteryBox is Initializable,Ownable, ReentrancyGuard, ERC721Pausable{
     uint256 private _boxId = 1e3;
     uint256 _seed;
     mapping(uint256 => uint256) private _boxes; // boxId: BoxFactoryId
-    mapping(uint256 => NFTOpenBox) private _openBoxes; // boxId: BoxFactoryId
+    mapping(uint256 => NFTOpenBox) private _openBoxes; // boxId: _boxId
     mapping(uint256 => BoxFactory) private _boxFactories; // factoryId: BoxFactory
     mapping(uint256 => uint256) private _lastTransferBlock;
    
 
     constructor() ERC721('DFT NFT', 'DFT'){
+        _seed =  block.timestamp;
     }
 
     function addBoxFactory(
@@ -145,12 +145,13 @@ contract MysteryBox is Initializable,Ownable, ReentrancyGuard, ERC721Pausable{
             author: factory.author
         });
     }
+    
     function getOpenBox(uint256 boxId) public view returns (NFTOpenBox memory box)
     {
         box = _openBoxes[boxId];
     }
 
-    function buy(uint256 factoryId, uint256 amount) public {
+    function buy(uint256 factoryId, uint256 amount) public nonReentrant{
         BoxFactory storage box = _boxFactories[factoryId];
         require(address(box.nftFactory) != address(0), "box not found");
 
@@ -160,17 +161,18 @@ contract MysteryBox is Initializable,Ownable, ReentrancyGuard, ERC721Pausable{
         box.minted = box.minted.add(amount);
 
         uint256 price = box.price.mul(amount);
-        IDefxERC20(box.currency).safeTransferFrom(msg.sender, address(this), price);
-        IDefxERC20(box.currency).safeTransfer(deadAddress, price);
+        IERC20(box.currency).safeTransferFrom(msg.sender, address(this), price);
+        IERC20(box.currency).safeTransfer(deadAddress, price);
         for(uint i = 0; i < amount; i++) {
             _boxId++;
+            //console.log("_boxId = %s",_boxId );
             _mint(msg.sender, _boxId);
             _boxes[_boxId] = factoryId;
             emit Minted(_boxId, factoryId, msg.sender);
         }
     }
 
-    function openBox(uint256 boxId) public {
+    function openBox(uint256 boxId) public nonReentrant {
         require(isContract(msg.sender) == false && tx.origin == msg.sender, "Prohibit contract calls");
         require(block.number - _lastTransferBlock[boxId] > 1, "wait");
         _upSeed(boxId);
@@ -179,7 +181,7 @@ contract MysteryBox is Initializable,Ownable, ReentrancyGuard, ERC721Pausable{
         burn(boxId);
         uint256 seed = Random.computerSeed().div(_seed);
         uint256 quality = seed % 19;
-        uint256 tokenId = IDefxNFTFactory(factory.nftFactory).doMint(msg.sender, seed % 19, 0);
+        uint256 tokenId = IDefxNFTFactory(factory.nftFactory).doMint(msg.sender, seed % 19, 100);
         NFTOpenBox storage box = _openBoxes[boxId];
         box.nftId = tokenId;
         box.quality = quality;
