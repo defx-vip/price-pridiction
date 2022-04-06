@@ -51,7 +51,6 @@ describe("OptionPool.spec", () => {
         await optionPool.addPool(100, defxCall.address, true, "ETH_PUT")
         expect(await optionPool.poolLength()).to.be.eq(1);
         expect(await optionPool.totalAllocPoint()).to.eq(100)
-     
     });
 
     it('constructor initializes immutables', async () => {

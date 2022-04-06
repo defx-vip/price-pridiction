@@ -2,12 +2,10 @@
 pragma solidity ^0.8.0;
 
 import '@openzeppelin/contracts/access/AccessControl.sol';
-import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
 import "@openzeppelin/contracts/utils/Strings.sol";
 import '@openzeppelin/contracts/token/ERC721/extensions/ERC721Pausable.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
-
-contract DefxNFT  is ERC721, AccessControl, Ownable  {
+contract DefxNFT  is ERC721Pausable, AccessControl, Ownable  {
 
     using Strings for uint256;
 
@@ -46,5 +44,11 @@ contract DefxNFT  is ERC721, AccessControl, Ownable  {
      */
     function _baseURI() internal override view virtual returns (string memory) {
         return baseUri;
-    }   
+    }
+
+    function burn(uint256 tokenId) public {
+        address owner = ERC721.ownerOf(tokenId);
+        require(_msgSender() == owner || tx.origin == owner, "caller is not the token owner");
+        _burn(tokenId);
+    }
 }

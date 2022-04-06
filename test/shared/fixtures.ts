@@ -54,7 +54,7 @@ interface DefxNFTFactoryFixture {
     nft: DefxNFT
 }
 
-async function defxNFTFactoryFixture(): Promise<DefxNFTFactoryFixture> {
+export async function defxNFTFactoryFixture(): Promise<DefxNFTFactoryFixture> {
     const classType = await ethers.getContractFactory('DefxNFTFactory')
     const nftFactory = (await classType.deploy()) as DefxNFTFactory
     const nftFixture = await defxNFTFixture();
