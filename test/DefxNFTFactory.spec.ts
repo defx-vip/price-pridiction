@@ -41,7 +41,6 @@ describe("DefxNFTFactory", () => {
         await defxNFTFactory.doMint(user.address, 18, 20);//nftId = 6
         expect(await defxNFTFactory.ownerOf(userNftId)).to.be.eq(user.address)
         expect(await defxNFTFactory.ownerOf(otherNftId)).to.be.eq(user.address)
-        
     });
 
     it('constructor initializes immutables 1', async () => {

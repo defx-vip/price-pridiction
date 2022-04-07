@@ -105,8 +105,7 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
     
     event Unpause(uint256 epoch);
 
-
-     modifier onlyAdmin() {
+    modifier onlyAdmin() {
         require(msg.sender == adminAddress, "admin: wut?");
         _;
     }
