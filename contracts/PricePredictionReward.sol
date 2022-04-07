@@ -4,7 +4,9 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-contract PricePredictionReward is ReentrancyGuard {
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "hardhat/console.sol";
+contract PricePredictionReward is ReentrancyGuard, Ownable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
     struct Pool {
@@ -13,7 +15,7 @@ contract PricePredictionReward is ReentrancyGuard {
 
     struct UserInfo {
         uint256 rewardAmount; //
-        uint256 pendingReward;
+        uint256 storageReward;
         uint256 amount; 
         uint256 lastDay;
     }
@@ -36,16 +38,18 @@ contract PricePredictionReward is ReentrancyGuard {
     Pool[] public pools;
     IERC20 public token;
 
-    constructor(uint256 _startBlock, address _token) {
+    constructor(uint256 _startBlock, uint256 _detTokenPerBlock, address _token) {
         startBlock = _startBlock;
         token = IERC20(_token);
+        detTokenPerBlock = _detTokenPerBlock;
     }
     
     mapping(uint256 => mapping(uint256 => PoolDayInfo)) public poolDayInfos; // day => poolId => PoolDayInfo
-    mapping(address => UserInfo) public userInfo;
-    mapping(uint256 => mapping(address => UserDayInfo)) public userDayInfo;
+    mapping(uint256 => mapping(address => UserInfo)) public userInfo;
+    mapping(uint256 => mapping(uint256 => mapping(address => UserDayInfo))) public userDayInfo; //day =>poolid => address >userDayInfo
 
     function addPool(uint256 allocPoint) public{
+       totalAllocPoint = totalAllocPoint.add(allocPoint);
         pools.push (Pool(
         {
             allocPoint: allocPoint
@@ -55,20 +59,78 @@ contract PricePredictionReward is ReentrancyGuard {
 
     function updatePoolInfo(uint256 _pid ,uint256 allocPoint) public{ 
         Pool storage pool = pools[_pid];
+        totalAllocPoint = totalAllocPoint.add(allocPoint).sub(pool.allocPoint);
         pool.allocPoint = allocPoint;
+        
     }
 
     function harvest(uint256 _pid) external nonReentrant{
-        uint256 day = block.timestamp.div(1 days);
-        Pool memory pool = pools[_pid];
-        UserInfo memory user = userInfo[msg.sender];
+        uint256 day = block.timestamp.div(1 days).mul(1 days);
+        UserInfo storage user = userInfo[_pid][msg.sender];
+        PoolDayInfo storage dayInfo = poolDayInfos[day][_pid];
+        UserDayInfo storage  _userDayInfo = userDayInfo[day][_pid][msg.sender];
+        updatePool(_pid, day);
+        uint256 pending = completeDay2(_pid, day, msg.sender);
+        _userDayInfo.rewardAmount = _userDayInfo.rewardAmount.add(pending);
+        if(user.lastDay != day ) {
+            updatePool(_pid, user.lastDay);
+            uint256 oldPending = completeDay2(_pid, user.lastDay, msg.sender);
+            pending = pending.add(oldPending);
+            user.lastDay = day;
+        }
+        pending = user.storageReward.add(pending);
+        token.safeTransfer(msg.sender, pending);
+        user.storageReward = 0;
+        user.rewardAmount = user.rewardAmount.add(pending);
+        _userDayInfo.rewardDebt = _userDayInfo.amount.mul(dayInfo.accDetTokenPerShare).div(1e12);
+
+    }
+
+    function deposit(uint256 _pid, address userAddress, uint256 amount)public nonReentrant{
+        UserInfo storage user = userInfo[_pid][userAddress];
+        uint256 day = block.timestamp.div(1 days).mul(1 days);
+        PoolDayInfo storage dayInfo = poolDayInfos[day][_pid];
+        UserDayInfo storage  _userDayInfo = userDayInfo[day][_pid][userAddress];
+        uint256 pending = 0;
+        updatePool(_pid, day);
+        if(user.lastDay != day ) {
+            updatePool(_pid, user.lastDay);
+            uint256 oldPending = completeDay2(_pid, user.lastDay, userAddress);
+            user.storageReward = user.storageReward.add(oldPending);
+            pending = pending.add(oldPending);
+            user.lastDay = day;
+        }
+        console.log(" _userDayInfo amount = %s ", _userDayInfo.amount);
+        if (_userDayInfo.amount > 0) {
+            pending = completeDay2(_pid, day, userAddress);
+            console.log(" _userDayInfo amount pending = %s ",pending);
+            user.storageReward = user.storageReward.add(pending);
+            _userDayInfo.rewardAmount = _userDayInfo.rewardAmount.add(pending);
+        }
+        _userDayInfo.amount = _userDayInfo.amount.add(amount);
+        user.amount = user.amount.add(amount);
+        dayInfo.totalAmount = dayInfo.totalAmount.add(amount);
+        _userDayInfo.rewardDebt = _userDayInfo.amount.mul(dayInfo.accDetTokenPerShare).div(1e12);
+    }
+
+    function completeDay(uint256 _pid, uint256 day, address userAddress) public view returns(uint256){
         PoolDayInfo memory dayInfo = poolDayInfos[day][_pid];
-        UserDayInfo memory  _userDayInfo = userDayInfo[day][msg.sender];
+        UserDayInfo memory  _userDayInfo = userDayInfo[day][_pid][userAddress];
+        Pool memory pool = pools[_pid];
         uint256 accTokenPerShare = dayInfo.accDetTokenPerShare;
         uint256 lpSupply = dayInfo.totalAmount;
-        if (block.number > dayInfo.lastRewardBlock && lpSupply != 0) {
+        uint256 pending = 0;
+        if(day == 0) {
+            return pending;
+        }
+        uint256 endTime =  block.timestamp;
+        if(endTime > day.add(1 days)) {
+            endTime = day.add(1 days);
+        }
+        if (_userDayInfo.amount > 0 && dayInfo.lastRewardBlock < endTime) {
             uint256 multiplier =
-                getMultiplier(dayInfo.lastRewardBlock, block.timestamp);
+                getMultiplier(dayInfo.lastRewardBlock, endTime);
+             console.log(" completeDay multiplier = %s ",multiplier);
             uint256 starTokenReward =
                 multiplier.mul(detTokenPerBlock).mul(pool.allocPoint).div(
                     totalAllocPoint
@@ -76,45 +138,22 @@ contract PricePredictionReward is ReentrancyGuard {
             accTokenPerShare = accTokenPerShare.add(
                 starTokenReward.mul(1e12).div(lpSupply)
             );
-        }
-        updatePool(_pid, day);
-        uint256 pending = _userDayInfo.amount.mul(accTokenPerShare).div(1e12).sub(_userDayInfo.rewardDebt);
-        _userDayInfo.rewardAmount = _userDayInfo.rewardAmount.add(pending);
-        if(user.lastDay != day) {
-            pending = pending.add(completeDay(_pid, user.lastDay, msg.sender));
-        }
-        pending = user.pendingReward.add(pending);
 
+            pending  = _userDayInfo.amount.mul(accTokenPerShare).div(1e12).sub(_userDayInfo.rewardDebt);
+        }
+        return pending;
     }
 
-    function deposit(uint256 _pid, address userAddress, uint256 amount)public nonReentrant{
-        UserInfo storage user = userInfo[userAddress];
-        uint256 day = block.timestamp.div(1 days);
+     function completeDay2(uint256 _pid, uint256 day, address userAddress) public view returns(uint256){
         PoolDayInfo memory dayInfo = poolDayInfos[day][_pid];
-        UserDayInfo storage  _userDayInfo = userDayInfo[day][userAddress];
+        UserDayInfo memory  _userDayInfo = userDayInfo[day][_pid][userAddress];
+        uint256 accTokenPerShare = dayInfo.accDetTokenPerShare;
         uint256 pending = 0;
-        updatePool(_pid, day);
-        if(user.lastDay != day) {
-            uint256 oldPending = completeDay(_pid, user.lastDay, userAddress);
-            user.pendingReward = user.pendingReward.add(oldPending);
-            user.lastDay = day;
+        if(day == 0) {
+            return pending;
         }
         if (_userDayInfo.amount > 0) {
-            pending = _userDayInfo.amount.mul(dayInfo.accDetTokenPerShare).div(1e12).sub(_userDayInfo.rewardDebt);
-            user.pendingReward = user.pendingReward.add(pending);
-            _userDayInfo.rewardAmount = _userDayInfo.rewardAmount.add(pending);
-        }
-        _userDayInfo.amount = _userDayInfo.amount.add(amount);
-        user.amount = user.amount.add(amount);
-        _userDayInfo.rewardDebt = _userDayInfo.amount.mul(dayInfo.accDetTokenPerShare).div(1e12);
-    }
-
-    function completeDay(uint256 _pid, uint256 day, address userAddress) public view returns(uint256){
-        PoolDayInfo memory dayInfo = poolDayInfos[day][_pid];
-        UserDayInfo memory  _userDayInfo = userDayInfo[day][userAddress];
-         uint256 pending = 0;
-        if (_userDayInfo.amount > 0) {
-            pending = _userDayInfo.amount.mul(dayInfo.accDetTokenPerShare).div(1e12).sub(_userDayInfo.rewardDebt);
+            pending  = _userDayInfo.amount.mul(accTokenPerShare).div(1e12).sub(_userDayInfo.rewardDebt);
         }
         return pending;
     }
@@ -125,29 +164,14 @@ contract PricePredictionReward is ReentrancyGuard {
         view
         returns (uint256)
     {   
-        uint256 day = block.timestamp.div(1 days);
-        Pool memory pool = pools[_pid];
-        UserInfo memory user = userInfo[_user];
-        PoolDayInfo memory dayInfo = poolDayInfos[day][_pid];
-        UserDayInfo memory  _userDayInfo = userDayInfo[day][_user];
-        uint256 accTokenPerShare = dayInfo.accDetTokenPerShare;
-        uint256 lpSupply = dayInfo.totalAmount;
-        if (block.number > dayInfo.lastRewardBlock && lpSupply != 0) {
-            uint256 multiplier =
-                getMultiplier(dayInfo.lastRewardBlock, block.timestamp);
-            uint256 starTokenReward =
-                multiplier.mul(detTokenPerBlock).mul(pool.allocPoint).div(
-                    totalAllocPoint
-                );
-            accTokenPerShare = accTokenPerShare.add(
-                starTokenReward.mul(1e12).div(lpSupply)
-            );
+        uint256 day = block.timestamp.div(1 days).mul( 1 days);
+        UserInfo memory user = userInfo[_pid][_user];
+        uint256 pending = completeDay(_pid, day, _user);
+        if(user.lastDay != day ) {
+         uint256  oldPending = completeDay(_pid, user.lastDay, _user);
+         pending = pending.add(oldPending);
         }
-        uint256 pending = _userDayInfo.amount.mul(accTokenPerShare).div(1e12).sub(_userDayInfo.rewardDebt);
-        if(user.lastDay != day) {
-            pending = pending.add(completeDay(_pid, user.lastDay, _user));
-        }
-        return user.pendingReward.add(pending);
+        return user.storageReward.add(pending);
     }
 
     function updatePool(uint256 index, uint256 day) public {
@@ -157,15 +181,18 @@ contract PricePredictionReward is ReentrancyGuard {
             endTime = day.add(1 days);
         }
         PoolDayInfo storage dayInfo = poolDayInfos[day][index];
-        if(dayInfo.totalAmount > 0) {
+        if(dayInfo.totalAmount > 0 && dayInfo.lastRewardBlock < endTime) {
            uint256 multiplier = getMultiplier(dayInfo.lastRewardBlock, endTime);
            uint256 starTokenReward =
             multiplier.mul(detTokenPerBlock).mul(pool.allocPoint).div(
                 totalAllocPoint
             );
-            dayInfo.accDetTokenPerShare = dayInfo.accDetTokenPerShare.add(starTokenReward);
+            dayInfo.accDetTokenPerShare = dayInfo.accDetTokenPerShare.add(
+                starTokenReward.mul(1e12).div(dayInfo.totalAmount)
+            );
         }
         dayInfo.lastRewardBlock = endTime;
+        
     }
 
     function getMultiplier(uint256 _from, uint256 _to)

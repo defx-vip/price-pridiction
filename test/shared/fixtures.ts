@@ -16,6 +16,7 @@ import {PriceCalculator} from '../../typechain/PriceCalculator'
 import {OptionPool} from '../../typechain/OptionPool'
 import {MysteryBox} from '../../typechain/MysteryBox'
 import {NFTMarket} from '../../typechain/NFTMarket'
+import {PricePredictionReward} from '../../typechain/PricePredictionReward'
 export const TEST_POOL_START_TIME = 1601906400
 import { BigNumber } from 'ethers'
 
@@ -250,4 +251,17 @@ export async function nftMarketFixture (): Promise<NFTMarketFixture> {
     const classType = await ethers.getContractFactory('NFTMarket')
     const nftMarket = (await classType.deploy()) as NFTMarket;
     return  {nft, nftFactory, nftMarket, dftToken}
+}
+
+interface PricePredictionRewardFixture {
+    pricePredictionReward:  PricePredictionReward,
+    dftToken: DefxToken
+}
+
+export async function pricePredictionRewardFixture (): Promise<PricePredictionRewardFixture> { 
+    let defxTokenFixtureObj = await defxTokenFixture();
+    let dftToken = defxTokenFixtureObj.token;
+    const classType = await ethers.getContractFactory('PricePredictionReward')
+    const pricePredictionReward = (await classType.deploy(0, 1, dftToken.address)) as PricePredictionReward;
+    return  { pricePredictionReward, dftToken}
 }
