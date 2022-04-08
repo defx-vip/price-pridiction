@@ -5,6 +5,7 @@ import "../interface/AggregatorV3Interface.sol";
 import "../interface/IDefxNFTFactory.sol";
 import '../interface/ITokenBonusSharePool.sol';
 import '../interface/IUserBonus.sol';
+import '../interface/IPricePredictionReward.sol';
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import '@openzeppelin/contracts/access/Ownable.sol';
 import "@openzeppelin/contracts/security/Pausable.sol";
@@ -49,6 +50,7 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
     uint256 public bufferBlocks; //15
     address public adminAddress; //管理员地址
     address public operatorAddress; //操作员地址
+    address public pricePredictionReward;
     uint256 public oracleLatestRoundId;
     uint256 public minBetAmount; //最小投资金额
     uint256 public oracleUpdateAllowance; // seconds 允许价格相差的时间
@@ -60,6 +62,7 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
     AggregatorV3Interface internal oracle; //预言机
     IERC20 public betToken;
     IUserBonus public userBonus;
+    
     event StartRound(uint256 indexed epoch, uint256 blockNumber, uint256 intervalBlocks);
     event LockRound(uint256 indexed epoch, uint256 blockNumber, int256 price);
     event EndRound(uint256 indexed epoch, uint256 blockNumber, int256 price);
@@ -182,6 +185,15 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
     function setBetToken(address _betToken) external onlyAdmin {
         betToken = IERC20(_betToken);
     }
+
+    function setPricePredictionReward(address _pricePredictionReward) external onlyAdmin {
+        pricePredictionReward = _pricePredictionReward;
+    }
+
+     function setUserBonus(address _userBonus) external onlyAdmin {
+        userBonus = IUserBonus(_userBonus);
+    }
+    
     /**
      * @dev Start genesis round/ 
      */
@@ -256,9 +268,14 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
         betInfo.amount = amount;
         betInfo.nftTokenId = 0;
         betInfo.nftTokenId = 0;
-        userBonus.betting(msg.sender, amount);
+        if(address(userBonus) != address(0)) {
+            userBonus.betting(msg.sender, amount);
+        }
         if(amount >= nftMinimumAmount) {
             betInfo.nftTokenId = betInfo.nftTokenId = nftTokenFactory.doMint(msg.sender, getQuality(amount), betInfo.amount);
+        }
+        if(pricePredictionReward != address(0)) {
+            IPricePredictionReward(pricePredictionReward).deposit(0, msg.sender, amount);
         }
         userRounds[msg.sender].push(currentEpoch);
         emit BetBear(msg.sender, currentEpoch, amount, betInfo.nftTokenId);
@@ -283,9 +300,14 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
         betInfo.position = Position.Bull;
         betInfo.amount = amount;
         betInfo.nftTokenId = 0;
-        userBonus.betting(msg.sender, amount);
+        if(address(userBonus) != address(0)) {
+            userBonus.betting(msg.sender, amount);
+        }
         if(amount >= nftMinimumAmount) {
             betInfo.nftTokenId = betInfo.nftTokenId = nftTokenFactory.doMint(msg.sender, getQuality(amount), betInfo.amount);
+        }
+        if(pricePredictionReward != address(0)) {
+            IPricePredictionReward(pricePredictionReward).deposit(0, msg.sender, amount);
         }
         userRounds[msg.sender].push(currentEpoch);
         emit BetBull(msg.sender, currentEpoch, amount, betInfo.nftTokenId);

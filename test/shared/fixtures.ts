@@ -17,8 +17,10 @@ import {OptionPool} from '../../typechain/OptionPool'
 import {MysteryBox} from '../../typechain/MysteryBox'
 import {NFTMarket} from '../../typechain/NFTMarket'
 import {PricePredictionReward} from '../../typechain/PricePredictionReward'
+import {DCoinPricePrediction} from '../../typechain/DCoinPricePrediction'
 export const TEST_POOL_START_TIME = 1601906400
-import { BigNumber } from 'ethers'
+import { BigNumber, Wallet } from 'ethers'
+
 
 interface DCoinTokenFixture {
     token: DCoinToken
@@ -264,4 +266,38 @@ export async function pricePredictionRewardFixture (): Promise<PricePredictionRe
     const classType = await ethers.getContractFactory('PricePredictionReward')
     const pricePredictionReward = (await classType.deploy(0, 1, dftToken.address)) as PricePredictionReward;
     return  { pricePredictionReward, dftToken}
+}
+
+interface DCoinPricePredictionFixture {
+    pricePredictionReward:  PricePredictionReward,
+    dftToken: DefxToken,
+    dcoinToken: DCoinToken,
+    nft: DefxNFT,
+    nftFactory: DefxNFTFactory,
+    priceProviderMock: PriceProviderMock,
+    dcoinPricePrediction:  DCoinPricePrediction 
+}
+
+export async function dcoinPricePredictionFixture (): Promise<DCoinPricePredictionFixture> { 
+
+    const [owner] = await ethers.getSigners();
+
+    let pricePredictionRewardFixtureObj = await pricePredictionRewardFixture();
+    let dftToken = pricePredictionRewardFixtureObj.dftToken;
+    let pricePredictionReward = pricePredictionRewardFixtureObj.pricePredictionReward;
+    let userBonusFixtureObj = await userBonusFixture();
+    let userBonus = userBonusFixtureObj.userBonus;
+    let dcoinToken = userBonusFixtureObj.token;
+    let nft = userBonusFixtureObj.nft;
+    let nftFactory = userBonusFixtureObj.nftFactory;
+    let priceProviderMockFix= await priceProviderMockFixture();
+    let priceProviderMock = priceProviderMockFix.priceProviderMock;
+    const classType = await ethers.getContractFactory('DCoinPricePrediction')
+    const dcoinPricePrediction = (await classType.deploy()) as DCoinPricePrediction;
+
+    await dcoinPricePrediction.initialize(dcoinToken.address, priceProviderMock.address, owner.address, owner.address,
+        100, 20, 1, 10000, nftFactory.address, userBonus.address
+        )
+    await userBonus.setAllownUpdateBets(dcoinPricePrediction.address, true);
+    return  { pricePredictionReward, dftToken, dcoinToken, nft, nftFactory ,priceProviderMock, dcoinPricePrediction }
 }

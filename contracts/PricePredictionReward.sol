@@ -86,7 +86,7 @@ contract PricePredictionReward is ReentrancyGuard, Ownable {
 
     }
 
-    function deposit(uint256 _pid, address userAddress, uint256 amount)public nonReentrant{
+    function deposit(uint256 _pid, address userAddress, uint256 amount) public nonReentrant{
         UserInfo storage user = userInfo[_pid][userAddress];
         uint256 day = block.timestamp.div(1 days).mul(1 days);
         PoolDayInfo storage dayInfo = poolDayInfos[day][_pid];

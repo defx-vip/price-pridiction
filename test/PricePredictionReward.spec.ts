@@ -44,7 +44,7 @@ describe("PricePredictionReward", () => {
         console.info(`user = ${user.address} user2 = ${user2.address}`)
     })
     
-    it('deposit one ', async () => { 
+    it('deposit one', async () => { 
        let day_c = 60 * 60 * 24;
        let now = Math.floor(new Date().getTime() / 1000);
        let day = Math.floor(now / day_c) * day_c ;
@@ -118,9 +118,35 @@ describe("PricePredictionReward", () => {
         expect(userDayInfo.amount).to.be.eq(200);
         expect(userDayInfo.rewardAmount).to.be.eq(2);
         expect(userDayInfo.rewardDebt).to.be.eq(3);
+
+        await token.mint(pricePredictionReward.address, 10000000);
+        expect(await pricePredictionReward.pendingToken(0, user.address)).to.be.eq(1);
      })
 
-     it('buy nft', async () => { 
-       
+     it('deposit two other ', async () => { 
+        let day_c = 60 * 60 * 24;
+        let now = Math.floor(new Date().getTime() / 1000);
+        let day = Math.floor(now / day_c) * day_c ;
+        await pricePredictionReward.deposit(0, user.address, 100);
+        await pricePredictionReward.deposit(0, user2.address, 100);
+
+        let poolDay = await pricePredictionReward.poolDayInfos(day, 0);
+        expect(poolDay.totalAmount).to.be.eq(200);
+        expect(poolDay.lastRewardBlock).to.be.gte(now - 20).lte(now + 20);
+        expect(poolDay.accDetTokenPerShare).to.be.eq(10000000000);
+ 
+        let userInfo = await pricePredictionReward.userInfo(0 ,user.address);
+        expect(userInfo.amount).to.be.eq(100);
+        expect(userInfo.lastDay).to.be.eq(day);
+        expect(userInfo.rewardAmount).to.be.eq(0);
+        expect(userInfo.storageReward).to.be.eq(0);
+         
+        let userDayInfo = await pricePredictionReward.userDayInfo(day, 0 ,user.address);
+        expect(userDayInfo.amount).to.be.eq(100);
+        expect(userDayInfo.rewardAmount).to.be.eq(0);
+        expect(userDayInfo.rewardDebt).to.be.eq(0);
+ 
+        await token.mint(pricePredictionReward.address, 10000000);
+        expect(await pricePredictionReward.pendingToken(0, user.address)).to.be.eq(1);
      })
 })
