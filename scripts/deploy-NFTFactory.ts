@@ -26,7 +26,7 @@ async function main() {
   await defxNFTFactory.initialize(defxNFT.address, 20);
   let MINT_ROLE = await defxNFT.MINT_ROLE();
   await defxNFT.grantRole( MINT_ROLE, defxNFTFactory.address);
-  console.log("DefxNFT deployed to:", defxNFT.address);
+  console.log("DefxNFT deployed to:", defxNFTFactory.address);
   console.log("DefxNFTFactory deployed to:", defxNFT.address);
 }
 

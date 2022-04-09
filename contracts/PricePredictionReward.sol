@@ -48,20 +48,23 @@ contract PricePredictionReward is ReentrancyGuard, Ownable {
     mapping(uint256 => mapping(address => UserInfo)) public userInfo;
     mapping(uint256 => mapping(uint256 => mapping(address => UserDayInfo))) public userDayInfo; //day =>poolid => address >userDayInfo
 
-    function addPool(uint256 allocPoint) public{
+    function addPool(uint256 allocPoint) public onlyOwner{
+       uint256 lastRewardBlock = block.number > startBlock ? block.number : startBlock; 
        totalAllocPoint = totalAllocPoint.add(allocPoint);
         pools.push (Pool(
         {
             allocPoint: allocPoint
         }
         ));
+        uint256 day = block.timestamp.div(1 days).mul(1 days);
+        PoolDayInfo storage dayInfo = poolDayInfos[day][pools.length -1];
+        dayInfo.lastRewardBlock = lastRewardBlock;
     }
 
-    function updatePoolInfo(uint256 _pid ,uint256 allocPoint) public{ 
+    function updatePoolInfo(uint256 _pid ,uint256 allocPoint) public onlyOwner{ 
         Pool storage pool = pools[_pid];
         totalAllocPoint = totalAllocPoint.add(allocPoint).sub(pool.allocPoint);
         pool.allocPoint = allocPoint;
-        
     }
 
     function harvest(uint256 _pid) external nonReentrant{
@@ -195,6 +198,25 @@ contract PricePredictionReward is ReentrancyGuard, Ownable {
         
     }
 
+    function getUserInfo(uint256 index, uint256 day, address _user) public view returns(uint256 dayAmount, uint256 amount, uint256 dayReward, uint256 reward){
+
+        uint256 pending = completeDay(index, day, _user);
+        UserInfo memory user = userInfo[index][msg.sender];
+        UserDayInfo memory  _userDayInfo = userDayInfo[day][index][msg.sender];
+        dayAmount = _userDayInfo.amount;
+        amount = user.amount;
+        dayReward = _userDayInfo.rewardAmount.add(pending);
+        reward = user.rewardAmount.add(pendingToken(index, _user));
+    }
+
+    function massUpdatePools() public {
+        uint256 length = pools.length;
+        uint256 day = block.timestamp.div(1 days).mul( 1 days);
+        for (uint256 pid = 0; pid < length; ++pid) {
+            updatePool(pid, day);
+        }
+    }
+
     function getMultiplier(uint256 _from, uint256 _to)
         public
         pure
@@ -202,5 +224,6 @@ contract PricePredictionReward is ReentrancyGuard, Ownable {
     {
         return _to.sub(_from);
     }
+
 
 }

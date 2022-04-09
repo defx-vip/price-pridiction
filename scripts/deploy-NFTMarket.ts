@@ -4,7 +4,7 @@
 // When running the script with `npx hardhat run <script>` you'll find the Hardhat
 // Runtime Environment's members available in the global scope.
 import { ethers} from 'hardhat'
-const nftAddress = "0xEe4A39bf41355c2F1546d4a4FFCa0C808dF32095";
+const nftAddress = "0xDF166dfB9c37EaD80A0C3FC48ee78e199E70AF8F";
 const defxAddress = "0x9E0F035628Ce4F5e02ddd14dEa2F7bd92B2A9152";
 const admin ="0x9e59Ba0D8a31094e714614Fd456e9a6ABa6925fA";
 import { BigNumber } from 'ethers'

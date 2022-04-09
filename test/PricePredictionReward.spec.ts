@@ -38,115 +38,141 @@ describe("PricePredictionReward", () => {
         pricePredictionReward = fixture.pricePredictionReward;
         await token.mint(pricePredictionReward.address, 10000000);
         await pricePredictionReward.addPool(100);
+        await pricePredictionReward.addPool(100);
     });
 
     it('constructor initializes immutables', async () => {
         console.info(`user = ${user.address} user2 = ${user2.address}`)
     })
     
-    it('deposit one', async () => { 
+    it('deposit  one', async () => { 
        let day_c = 60 * 60 * 24;
        let now = Math.floor(new Date().getTime() / 1000);
        let day = Math.floor(now / day_c) * day_c ;
        await pricePredictionReward.deposit(0, user.address, 200);
-
-       let poolDay = await pricePredictionReward.poolDayInfos(day, 0);
-       expect(poolDay.totalAmount).to.be.eq(200);
-       expect(poolDay.lastRewardBlock).to.be.gte(now - 20).lte(now + 20);
-       expect(poolDay.accDetTokenPerShare).to.be.eq(0);
+       await pricePredictionReward.deposit(1, user.address, 1);
 
        let userInfo = await pricePredictionReward.userInfo(0 ,user.address);
        expect(userInfo.amount).to.be.eq(200);
        expect(userInfo.lastDay).to.be.eq(day);
        expect(userInfo.rewardAmount).to.be.eq(0);
        expect(userInfo.storageReward).to.be.eq(0);
+
+       let userInfo1 = await pricePredictionReward.userInfo(1 ,user.address);
+       expect(userInfo1.amount).to.be.eq(1);
+       expect(userInfo1.lastDay).to.be.eq(day);
+       expect(userInfo1.rewardAmount).to.be.eq(0);
+       expect(userInfo1.storageReward).to.be.eq(0);
         
-       let userDayInfo = await pricePredictionReward.userDayInfo(day, 0 ,user.address);
-       expect(userDayInfo.amount).to.be.eq(200);
-       expect(userDayInfo.rewardAmount).to.be.eq(0);
-       expect(userDayInfo.rewardDebt).to.be.eq(0);
 
-       await token.mint(pricePredictionReward.address, 5000000);
-       expect(await pricePredictionReward.pendingToken(0, user.address)).to.be.eq(1);
-
-     
     })
 
-    it('deposit two ', async () => { 
-        let day_c = 60 * 60 * 24;
-        let now = Math.floor(new Date().getTime() / 1000);
-        let day = Math.floor(now / day_c) * day_c ;
-        await pricePredictionReward.deposit(0, user.address, 100);
-        await pricePredictionReward.deposit(0, user.address, 100);
-
-        let poolDay = await pricePredictionReward.poolDayInfos(day, 0);
-        expect(poolDay.totalAmount).to.be.eq(200);
-        expect(poolDay.lastRewardBlock).to.be.gte(now - 20).lte(now + 20);
-        expect(poolDay.accDetTokenPerShare).to.be.eq(10000000000);
+    // it('deposit one', async () => { 
+    //     let day_c = 60 * 60 * 24;
+    //     let now = Math.floor(new Date().getTime() / 1000);
+    //     let day = Math.floor(now / day_c) * day_c ;
+    //     await pricePredictionReward.deposit(1, user.address, 200);
  
-        let userInfo = await pricePredictionReward.userInfo(0 ,user.address);
-        expect(userInfo.amount).to.be.eq(200);
-        expect(userInfo.lastDay).to.be.eq(day);
-        expect(userInfo.rewardAmount).to.be.eq(0);
-        expect(userInfo.storageReward).to.be.eq(1);
+    //     let poolDay = await pricePredictionReward.poolDayInfos(day, 1);
+    //     expect(poolDay.totalAmount).to.be.eq(200);
+    //     expect(poolDay.lastRewardBlock).to.be.gte(now - 20);
+    //     expect(poolDay.accDetTokenPerShare).to.be.eq(0);
+ 
+    //     let userInfo = await pricePredictionReward.userInfo(1 ,user.address);
+    //     expect(userInfo.amount).to.be.eq(200);
+    //     expect(userInfo.lastDay).to.be.eq(day);
+    //     expect(userInfo.rewardAmount).to.be.eq(0);
+    //     expect(userInfo.storageReward).to.be.eq(0);
          
-        let userDayInfo = await pricePredictionReward.userDayInfo(day, 0 ,user.address);
-        expect(userDayInfo.amount).to.be.eq(200);
-        expect(userDayInfo.rewardAmount).to.be.eq(1);
-        expect(userDayInfo.rewardDebt).to.be.eq(2);
+    //     let userDayInfo = await pricePredictionReward.userDayInfo(day,1,user.address);
+    //     expect(userDayInfo.amount).to.be.eq(200);
+    //     expect(userDayInfo.rewardAmount).to.be.eq(0);
+    //     expect(userDayInfo.rewardDebt).to.be.eq(0);
  
-        await token.mint(pricePredictionReward.address, 10000000);
-        expect(await pricePredictionReward.pendingToken(0, user.address)).to.be.eq(2);
-     })
-
-     it('harvest', async () => { 
-        let day_c = 60 * 60 * 24;
-        let now = Math.floor(new Date().getTime() / 1000);
-        let day = Math.floor(now / day_c) * day_c ;
-        await pricePredictionReward.deposit(0, user.address, 100);
-        await pricePredictionReward.deposit(0, user.address, 100);
-        await pricePredictionReward.harvest(0);
-
-        let userInfo = await pricePredictionReward.userInfo(0 ,user.address);
-        expect(userInfo.amount).to.be.eq(200);
-        expect(userInfo.lastDay).to.be.eq(day);
-        expect(userInfo.rewardAmount).to.be.eq(2);
-        expect(userInfo.storageReward).to.be.eq(0);
-        expect(await token.balanceOf(user.address)).to.be.eq(2)
-
-        let userDayInfo = await pricePredictionReward.userDayInfo(day, 0 ,user.address);
-        expect(userDayInfo.amount).to.be.eq(200);
-        expect(userDayInfo.rewardAmount).to.be.eq(2);
-        expect(userDayInfo.rewardDebt).to.be.eq(3);
-
-        await token.mint(pricePredictionReward.address, 10000000);
-        expect(await pricePredictionReward.pendingToken(0, user.address)).to.be.eq(1);
-     })
-
-     it('deposit two other ', async () => { 
-        let day_c = 60 * 60 * 24;
-        let now = Math.floor(new Date().getTime() / 1000);
-        let day = Math.floor(now / day_c) * day_c ;
-        await pricePredictionReward.deposit(0, user.address, 100);
-        await pricePredictionReward.deposit(0, user2.address, 100);
-
-        let poolDay = await pricePredictionReward.poolDayInfos(day, 0);
-        expect(poolDay.totalAmount).to.be.eq(200);
-        expect(poolDay.lastRewardBlock).to.be.gte(now - 20).lte(now + 20);
-        expect(poolDay.accDetTokenPerShare).to.be.eq(10000000000);
+    //     await token.mint(pricePredictionReward.address, 5000000);
+    //     expect(await pricePredictionReward.pendingToken(0, user.address)).to.be.eq(1);
  
-        let userInfo = await pricePredictionReward.userInfo(0 ,user.address);
-        expect(userInfo.amount).to.be.eq(100);
-        expect(userInfo.lastDay).to.be.eq(day);
-        expect(userInfo.rewardAmount).to.be.eq(0);
-        expect(userInfo.storageReward).to.be.eq(0);
+      
+    //  })
+
+    // it('deposit two ', async () => { 
+    //     let day_c = 60 * 60 * 24;
+    //     let now = Math.floor(new Date().getTime() / 1000);
+    //     let day = Math.floor(now / day_c) * day_c ;
+    //     await pricePredictionReward.deposit(0, user.address, 100);
+    //     await pricePredictionReward.deposit(0, user.address, 100);
+
+    //     let poolDay = await pricePredictionReward.poolDayInfos(day, 0);
+    //     expect(poolDay.totalAmount).to.be.eq(200);
+    //     expect(poolDay.lastRewardBlock).to.be.gte(now - 20);
+    //     expect(poolDay.accDetTokenPerShare).to.be.eq(10000000000);
+ 
+    //     let userInfo = await pricePredictionReward.userInfo(0 ,user.address);
+    //     expect(userInfo.amount).to.be.eq(200);
+    //     expect(userInfo.lastDay).to.be.eq(day);
+    //     expect(userInfo.rewardAmount).to.be.eq(0);
+    //     expect(userInfo.storageReward).to.be.eq(1);
          
-        let userDayInfo = await pricePredictionReward.userDayInfo(day, 0 ,user.address);
-        expect(userDayInfo.amount).to.be.eq(100);
-        expect(userDayInfo.rewardAmount).to.be.eq(0);
-        expect(userDayInfo.rewardDebt).to.be.eq(0);
+    //     let userDayInfo = await pricePredictionReward.userDayInfo(day, 0 ,user.address);
+    //     expect(userDayInfo.amount).to.be.eq(200);
+    //     expect(userDayInfo.rewardAmount).to.be.eq(1);
+    //     expect(userDayInfo.rewardDebt).to.be.eq(2);
  
-        await token.mint(pricePredictionReward.address, 10000000);
-        expect(await pricePredictionReward.pendingToken(0, user.address)).to.be.eq(1);
-     })
+    //     await token.mint(pricePredictionReward.address, 10000000);
+    //     expect(await pricePredictionReward.pendingToken(0, user.address)).to.be.eq(2);
+    //  })
+
+    //  it('harvest', async () => { 
+    //     let day_c = 60 * 60 * 24;
+    //     let now = Math.floor(new Date().getTime() / 1000);
+    //     let day = Math.floor(now / day_c) * day_c ;
+    //     await pricePredictionReward.deposit(0, user.address, 100);
+    //     await pricePredictionReward.deposit(0, user.address, 100);
+    //     await pricePredictionReward.harvest(0);
+
+    //     let userInfo = await pricePredictionReward.userInfo(0 ,user.address);
+    //     expect(userInfo.amount).to.be.eq(200);
+    //     expect(userInfo.lastDay).to.be.eq(day);
+    //     expect(userInfo.rewardAmount).to.be.eq(2);
+    //     expect(userInfo.storageReward).to.be.eq(0);
+    //     expect(await token.balanceOf(user.address)).to.be.eq(2)
+
+    //     let userDayInfo = await pricePredictionReward.userDayInfo(day, 0 ,user.address);
+    //     expect(userDayInfo.amount).to.be.eq(200);
+    //     expect(userDayInfo.rewardAmount).to.be.eq(2);
+    //     expect(userDayInfo.rewardDebt).to.be.eq(3);
+
+    //     await token.mint(pricePredictionReward.address, 10000000);
+    //     expect(await pricePredictionReward.pendingToken(0, user.address)).to.be.eq(1);
+    //  })
+
+    //  it('deposit two other ', async () => { 
+    //     let day_c = 60 * 60 * 24;
+    //     let now = Math.floor(new Date().getTime() / 1000);
+    //     let day = Math.floor(now / day_c) * day_c ;
+    //     await pricePredictionReward.deposit(0, user.address, 100);
+    //     await pricePredictionReward.deposit(0, user2.address, 100);
+
+    //     let poolDay = await pricePredictionReward.poolDayInfos(day, 0);
+    //     expect(poolDay.totalAmount).to.be.eq(200);
+    //     expect(poolDay.lastRewardBlock).to.be.gte(now - 20);
+    //     expect(poolDay.accDetTokenPerShare).to.be.eq(10000000000);
+ 
+    //     let userInfo = await pricePredictionReward.userInfo(0 ,user.address);
+    //     expect(userInfo.amount).to.be.eq(100);
+    //     expect(userInfo.lastDay).to.be.eq(day);
+    //     expect(userInfo.rewardAmount).to.be.eq(0);
+    //     expect(userInfo.storageReward).to.be.eq(0);
+         
+    //     let userDayInfo = await pricePredictionReward.userDayInfo(day, 0 ,user.address);
+    //     expect(userDayInfo.amount).to.be.eq(100);
+    //     expect(userDayInfo.rewardAmount).to.be.eq(0);
+    //     expect(userDayInfo.rewardDebt).to.be.eq(0);
+ 
+    //     await token.mint(pricePredictionReward.address, 10000000);
+    //     expect(await pricePredictionReward.pendingToken(0, user.address)).to.be.eq(1);
+        
+    //     let userInfo1 = await pricePredictionReward.getUserInfo(0, day, user.address);
+    //     console.info(`amount = ${userInfo1.amount} dayAmount= ${userInfo1.dayAmount} reward= ${userInfo1.reward} dayReward= ${userInfo1.dayReward} `)
+    // })
 })

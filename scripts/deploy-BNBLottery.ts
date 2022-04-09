@@ -4,8 +4,10 @@
 // When running the script with `npx hardhat run <script>` you'll find the Hardhat
 // Runtime Environment's members available in the global scope.
 import { ethers} from 'hardhat'
-const userInfoAddress = "0xc7638674044228111A285C3A755262A57062Ce99";
-const dcoinAddress = "0x079c29b4f37CEF7DDF6eC68A8BaC48A220eb72Bf";
+const nftFactoryAddress = "0x429bd7860a45E928F9A52Cc32f891190b25c830d";
+const defxAddress = "0x9E0F035628Ce4F5e02ddd14dEa2F7bd92B2A9152";
+const bnbOracle = "0x2514895c72f50D8bd4B4F9b1110F0D6bD2c97526";
+const adminAddress = "0x9e59Ba0D8a31094e714614Fd456e9a6ABa6925fA";
 async function main() {
   // Hardhat always runs the compile task when running scripts with its command
   // line interface.
@@ -15,12 +17,12 @@ async function main() {
   // await hre.run('compile');
 
   // We get the contract to deploy
-  const UserBonus = await ethers.getContractFactory("UserBonus");
-  const userBonus = await UserBonus.deploy(userInfoAddress, dcoinAddress);
-
-  await userBonus.deployed();
-  console.info(await userBonus.userInfo())
-  console.log("Greeter deployed to:", userBonus.address);
+  const BNBLottery = await ethers.getContractFactory("BNBLottery");
+  const bnbLottery = await BNBLottery.deploy();
+  await bnbLottery.deployed();
+  await bnbLottery.initialize(adminAddress, adminAddress, 28800, 20, 3, bnbOracle, nftFactoryAddress, defxAddress);
+  //await bnbLottery.setPricePredictionReward("0x95Ea06a66032C09A1De25326d0eeB5DE4f1B0e8f");
+  console.log("Greeter deployed to:", bnbLottery.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

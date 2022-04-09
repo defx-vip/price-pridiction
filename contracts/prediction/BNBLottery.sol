@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 import "../interface/IDefxNFTFactory.sol";
 import "../interface/AggregatorV3Interface.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-
+import '../interface/IPricePredictionReward.sol';
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -45,19 +45,13 @@ contract BNBLottery  is Pausable, Initializable{
     event Unpause(uint256 epoch);
 
     bool public genesisStartOnce; //是否调用初始化开始方法
-
     uint256 public currentEpoch; //当前周期角标
-
     uint256 public intervalBlocks; //100
-
     uint256 public bufferBlocks; //15 
-
     address public adminAddress; //管理员地址
-
     address public operatorAddress; //操作员地址
-
+    address public pricePredictionReward;
     uint256 public roundRewardAmount; //奖励金额
-
     uint8 public roundRewardLevel; //奖励金额等级
 
     mapping(uint256 => Round) public rounds; //期权周期mapping, currentEpoch
@@ -154,7 +148,11 @@ contract BNBLottery  is Pausable, Initializable{
         bufferBlocks = _bufferBlocks;
     }
 
-      /**
+    function setPricePredictionReward(address _pricePredictionReward) external onlyAdmin {
+        pricePredictionReward = _pricePredictionReward;
+    }
+
+    /**
      * @dev Start genesis round/ 
      */
     function genesisStartRound() external onlyOperator whenNotPaused {
@@ -226,6 +224,9 @@ contract BNBLottery  is Pausable, Initializable{
 
     function bet(uint256 tokenId) external  whenNotPaused  {
         _bet(tokenId);
+        if(pricePredictionReward != address(0)) {
+            IPricePredictionReward(pricePredictionReward).deposit(2, tx.origin, 1e18);
+        }
     }
 
           /**

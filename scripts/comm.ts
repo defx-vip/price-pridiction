@@ -1,9 +1,10 @@
 import { ethers} from 'hardhat'
 import { BigNumber } from 'ethers'
-const nftFactoryAddress = "0x4566Cf31B204985259aDb368337D9C8d1ec92E96";
+const nftFactoryAddress = "0x429bd7860a45E928F9A52Cc32f891190b25c830d";
 const erc20 = "0x9E0F035628Ce4F5e02ddd14dEa2F7bd92B2A9152";
-const add = "0x4C86978D848925a88a61ef1b7dA61574D531C1ea";
+const add = "0x0D87F4368B2106Fb200746E182de22f5B3BDB568";
 const nftAddress = "0xEe4A39bf41355c2F1546d4a4FFCa0C808dF32095";
+const bnbLotteryAddress = "0x0D87F4368B2106Fb200746E182de22f5B3BDB568";
 async function nftFactorySetOperator() {
     let nftFactory = await ethers.getContractAt( "DefxNFTFactory", nftFactoryAddress);
     await nftFactory.setOperator(add, true);
@@ -45,7 +46,58 @@ async function saleNFT() {
     await nftMarket.startSales(userNftId, num, 950, now, 300, nftAddress, erc20 )
 }
 
-saleNFT()
+async function mintNFT() {
+    let nftFactory = await ethers.getContractAt( "DefxNFTFactory", nftFactoryAddress);
+    let i = 0;
+    while( i <= 10) {
+        await nftFactory.doMint("0x9e59Ba0D8a31094e714614Fd456e9a6ABa6925fA", 0, 10000);
+        i++
+    }
+}
+
+async function bnbLotteryStart() {
+    let bnbLottery = await ethers.getContractAt("BNBLottery", bnbLotteryAddress);
+    await bnbLottery.executeRound();
+    console.info("bnbLotteryStart");
+}
+
+async function setDocinVal() {
+    let DCoinPricePredictionAddress = "0xb118e213c12C0a95466f6f7860191550522f9B38";
+    let dcoinPricePrediction = await ethers.getContractAt( "DCoinPricePrediction",DCoinPricePredictionAddress);
+    await dcoinPricePrediction.setPricePredictionReward("0x95Ea06a66032C09A1De25326d0eeB5DE4f1B0e8f");
+}
+async function setBNBLotteryVal() {
+    let bnbLottery = await ethers.getContractAt("BNBLottery", bnbLotteryAddress);
+    //await bnbLottery.setPricePredictionReward("0x95Ea06a66032C09A1De25326d0eeB5DE4f1B0e8f");
+    await bnbLottery.bet(59);
+}
+
+async function getUserInfo() {
+    let bnbLottery = await ethers.getContractAt("BNBLottery", bnbLotteryAddress);
+    let reward  = await bnbLottery.pricePredictionReward();
+    console.info(`reward = ${reward}`)
+    let pricePredictionReward = await ethers.getContractAt( "PricePredictionReward","0x95Ea06a66032C09A1De25326d0eeB5DE4f1B0e8f");
+    let day_c = 60 * 60 * 24;
+    let now = Math.floor(new Date().getTime() / 1000);
+    let day = Math.floor(now / day_c) * day_c ;
+    let user = await pricePredictionReward.getUserInfo(2, day, "0x9e59Ba0D8a31094e714614Fd456e9a6ABa6925fA");
+    console.info(user)
+    
+}
+
+async function setUserInfo() {
+    let UserBonusAddress = "0x347EbFB3B63135Af29ba54D68FB1f6bA561CbBDA";
+    let userBonus = await ethers.getContractAt( "UserBonus",UserBonusAddress);
+    await userBonus.setUserInfo("0xcB4Bc901073bae6E4ef172Aca135B393dbd9Bf7E");
+}
+
+async function addPool() {
+    let PricePredictionRewardAddress = "0x95Ea06a66032C09A1De25326d0eeB5DE4f1B0e8f";
+    let pricePredictionReward = await ethers.getContractAt( "PricePredictionReward",PricePredictionRewardAddress);
+    await pricePredictionReward.addPool(1000);
+}
+
+getUserInfo()
   .then(() => process.exit(0))
   .catch((error) => {
     console.error(error);

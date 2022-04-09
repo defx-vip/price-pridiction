@@ -4,8 +4,10 @@
 // When running the script with `npx hardhat run <script>` you'll find the Hardhat
 // Runtime Environment's members available in the global scope.
 import { ethers} from 'hardhat'
-const userInfoAddress = "0xc7638674044228111A285C3A755262A57062Ce99";
-const dcoinAddress = "0x079c29b4f37CEF7DDF6eC68A8BaC48A220eb72Bf";
+
+const admin = "0x9e59Ba0D8a31094e714614Fd456e9a6ABa6925fA";
+const defxAddress = "0x9E0F035628Ce4F5e02ddd14dEa2F7bd92B2A9152";
+import { BigNumber } from 'ethers'
 async function main() {
   // Hardhat always runs the compile task when running scripts with its command
   // line interface.
@@ -15,12 +17,12 @@ async function main() {
   // await hre.run('compile');
 
   // We get the contract to deploy
-  const UserBonus = await ethers.getContractFactory("UserBonus");
-  const userBonus = await UserBonus.deploy(userInfoAddress, dcoinAddress);
-
-  await userBonus.deployed();
-  console.info(await userBonus.userInfo())
-  console.log("Greeter deployed to:", userBonus.address);
+  const PricePredictionReward = await ethers.getContractFactory("PricePredictionReward");
+  let dfx = BigNumber.from("16666666666666666")
+  const pricePredictionReward = await PricePredictionReward.deploy(0, dfx, defxAddress);
+  await pricePredictionReward.deployed();
+  await pricePredictionReward.addPool(1000);
+  console.info(pricePredictionReward.address)
 }
 
 // We recommend this pattern to be able to use async/await everywhere

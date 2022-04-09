@@ -4,12 +4,11 @@
 // When running the script with `npx hardhat run <script>` you'll find the Hardhat
 // Runtime Environment's members available in the global scope.
 import { ethers} from 'hardhat'
-const nftFactoryAddress = "0x4566Cf31B204985259aDb368337D9C8d1ec92E96";
+const nftFactoryAddress = "0x429bd7860a45E928F9A52Cc32f891190b25c830d";
 const dcoinAddress = "0x079c29b4f37CEF7DDF6eC68A8BaC48A220eb72Bf";
 const bnbOracle = "0x2514895c72f50D8bd4B4F9b1110F0D6bD2c97526";
 const admin = "0x9e59Ba0D8a31094e714614Fd456e9a6ABa6925fA";
 const userBonusAddress = "0x347EbFB3B63135Af29ba54D68FB1f6bA561CbBDA";
-
 import { BigNumber } from 'ethers'
 async function main() {
   // Hardhat always runs the compile task when running scripts with its command
@@ -25,9 +24,9 @@ async function main() {
   const dcoinPricePrediction = await DCoinPricePrediction.deploy();
   await dcoinPricePrediction.deployed();
   await dcoinPricePrediction.initialize(dcoinAddress, bnbOracle,admin, admin, 100 ,20, 10, 300, nftFactoryAddress, userBonusAddress);
-  // console.log("Greeter deployed to:", dcoinPricePrediction.address);
-  //let defxNFTFactory = await ethers.getContractAt( "DefxNFTFactory",nftFactoryAddress);
-  //await defxNFTFactory.setOperator(dcoinPricePrediction.address, true);
+  console.log("Greeter deployed to:", dcoinPricePrediction.address);
+  let defxNFTFactory = await ethers.getContractAt( "DefxNFTFactory",nftFactoryAddress);
+  await defxNFTFactory.setOperator(dcoinPricePrediction.address, true);
   let userBonus = await ethers.getContractAt( "UserBonus", userBonusAddress);
   await userBonus.setAllownUpdateBets(dcoinPricePrediction.address, true);
   console.info(dcoinPricePrediction.address)

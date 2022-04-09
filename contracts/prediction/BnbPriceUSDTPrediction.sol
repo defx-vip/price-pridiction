@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import "../interface/AggregatorV3Interface.sol";
 import "../interface/IDefxNFTFactory.sol";
 import '../interface/ITokenBonusSharePool.sol';
+import '../interface/IPricePredictionReward.sol';
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import '@openzeppelin/contracts/access/Ownable.sol';
 import "@openzeppelin/contracts/security/Pausable.sol";
@@ -54,6 +55,7 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
     address public adminAddress; //管理员地址
 
     address public operatorAddress; //操作员地址
+    address public pricePredictionReward;
 
     uint256 public oracleLatestRoundId;
 
@@ -322,6 +324,9 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
         if(amount >= nftMinimumAmount) {
             betInfo.nftTokenId = betInfo.nftTokenId = nftTokenFactory.doMint(msg.sender, getQuality(amount), betInfo.amount);
         }
+        if(pricePredictionReward != address(0)) {
+            IPricePredictionReward(pricePredictionReward).deposit(2, tx.origin, amount);
+        }
         userRounds[msg.sender].push(currentEpoch);
         uint256 fee = betInfo.amount.mul(treasuryRate).div(TOTAL_RATE);
         if(fee > 0) {
@@ -351,6 +356,9 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
         betInfo.nftTokenId = 0;
         if(amount >= nftMinimumAmount) {
             betInfo.nftTokenId = betInfo.nftTokenId = nftTokenFactory.doMint(msg.sender, getQuality(amount), betInfo.amount);
+        }
+        if(pricePredictionReward != address(0)) {
+            IPricePredictionReward(pricePredictionReward).deposit(2, tx.origin, amount);
         }
         userRounds[msg.sender].push(currentEpoch);
         uint256 fee = betInfo.amount.mul(treasuryRate).div(TOTAL_RATE); 
@@ -428,6 +436,10 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
     function setNftMinimumAmount(uint256 _nftMinimumAmount) external onlyAdminOrOperator {
         require(_nftMinimumAmount < 10**18, "nftMinimumAmount error");
         nftMinimumAmount = _nftMinimumAmount;
+    }
+
+    function setPricePredictionReward(address _pricePredictionReward) external onlyAdmin {
+        pricePredictionReward = _pricePredictionReward;
     }
     /**
      * @dev Return round epochs that a user has participated
