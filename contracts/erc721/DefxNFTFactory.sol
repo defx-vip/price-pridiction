@@ -43,7 +43,8 @@ contract DefxNFTFactory is Governance, Initializable, ReentrancyGuard{
     event UpgradedEvent(
         uint256 indexed nftId,
         uint256[] materialNftIds,
-        uint256 newTokenId
+        uint256 newQuality,
+        uint256 newGrade
     );
 
     uint256 public lastTokenId;
@@ -137,7 +138,7 @@ contract DefxNFTFactory is Governance, Initializable, ReentrancyGuard{
     function upgradeNft(uint256 nftId, uint256[] memory materialNftIds) public nonReentrant {
         require(tx.origin == msg.sender, "Cant call from contract");
         require(nft.ownerOf(nftId) == msg.sender, "DefxNFTFactory: upgradeNft not your nft");
-        DEFXToken memory data = _aolis[nftId];
+        DEFXToken storage data = _aolis[nftId];
         uint256 quality = data.quality.add(1);
         require(quality <= 19, "DefxNFTFactory: upgradeNft quality error");
         require(materialNftIds.length == 5, "DefxNFTFactory: upgradeNft materialNftIds length error");
@@ -148,15 +149,14 @@ contract DefxNFTFactory is Governance, Initializable, ReentrancyGuard{
             nft.burn(materialNftIds[i]);
         }
        uint256 seed = computerSeed();
-       uint256 newTokenId = 0;
        if(seed % 4 != 0 ) {
-           nft.burn(nftId);
-           newTokenId = doMint(msg.sender, quality, 0);
-           upgradedLastNfts[msg.sender] = newTokenId;
+          data.quality = data.quality.add(1);
+          data.grade = getGrade( data.quality );
+          upgradedLastNfts[msg.sender] = data.quality;
        } else {
-            upgradedLastNfts[msg.sender] = newTokenId;
+            upgradedLastNfts[msg.sender] = 0;
        }
-       emit UpgradedEvent(nftId, materialNftIds, newTokenId);
+       emit UpgradedEvent(nftId, materialNftIds, data.quality, data.grade);
     }
 
     function onERC721Received(address operator, address from, uint256 tokenId, bytes memory data) public returns (bytes4) {
