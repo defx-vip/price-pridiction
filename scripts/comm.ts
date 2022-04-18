@@ -2,19 +2,19 @@ import { ethers} from 'hardhat'
 import { BigNumber } from 'ethers'
 const nftFactoryAddress = "0x429bd7860a45E928F9A52Cc32f891190b25c830d";
 const erc20 = "0x9E0F035628Ce4F5e02ddd14dEa2F7bd92B2A9152";
-const add = "0x0D87F4368B2106Fb200746E182de22f5B3BDB568";
+const add = "0x1425401856048e01c53b3adCE86d3ee9919a7345";
 const nftAddress = "0xEe4A39bf41355c2F1546d4a4FFCa0C808dF32095";
 const bnbLotteryAddress = "0x0D87F4368B2106Fb200746E182de22f5B3BDB568";
 async function nftFactorySetOperator() {
     let nftFactory = await ethers.getContractAt( "DefxNFTFactory", nftFactoryAddress);
-    await nftFactory.setOperator(add, true);
+    await nftFactory.setOperator("0x97c62c81978fe50ae773d489C78ed5b475DD8813", true);
     console.info(`nftFactorySetOperator: ${add} 授权成功`);
 }
 
 async function erc20Approve() {
     let defx = await ethers.getContractAt( "ERC20", erc20);
     let num = BigNumber.from("100000000000000000000")
-    await defx.approve(add, num) ;
+    await defx.approve("0x9e59Ba0D8a31094e714614Fd456e9a6ABa6925fA", num) ;
   
     console.info(`erc20Approve: ${add} 授权成功`);
 }
@@ -50,7 +50,7 @@ async function mintNFT() {
     let nftFactory = await ethers.getContractAt( "DefxNFTFactory", nftFactoryAddress);
     let i = 0;
     while( i <= 10) {
-        await nftFactory.doMint("0x9e59Ba0D8a31094e714614Fd456e9a6ABa6925fA", 0, 10000);
+        await nftFactory.doMint("0x97c62c81978fe50ae773d489C78ed5b475DD8813", 0, 10000);
         i++
     }
 }
@@ -97,7 +97,7 @@ async function addPool() {
     await pricePredictionReward.addPool(1000);
 }
 
-getUserInfo()
+mintNFT()
   .then(() => process.exit(0))
   .catch((error) => {
     console.error(error);

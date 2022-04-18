@@ -51,10 +51,9 @@ describe("DefxNFTFactory", () => {
         let arr = [2,3,4,5,6];
         await defxNFTFactory.upgradeNft(1, arr);
         expect(await defxNft.balanceOf(user.address)).to.be.eq(1);
+        let defxToken = await defxNFTFactory._aolis(1);
+        console.info(`defxToken = ` + defxToken.quality)
         let upgradedLastNft = await defxNFTFactory.upgradedLastNfts(user.address);
         console.info(`upgradedLastNft = ${upgradedLastNft}`);
     })
-
-    
-
 })

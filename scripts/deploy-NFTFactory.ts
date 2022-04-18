@@ -4,9 +4,8 @@
 // When running the script with `npx hardhat run <script>` you'll find the Hardhat
 // Runtime Environment's members available in the global scope.
 import { ethers} from 'hardhat'
-const nftFactoryAddress = "0x4566Cf31B204985259aDb368337D9C8d1ec92E96";
-const userInfoAddress = "0xcB4Bc901073bae6E4ef172Aca135B393dbd9Bf7E";
-const dcoinAddress = "0x079c29b4f37CEF7DDF6eC68A8BaC48A220eb72Bf";
+const nftAddress = "0xDF166dfB9c37EaD80A0C3FC48ee78e199E70AF8F";
+
 async function main() {
   // Hardhat always runs the compile task when running scripts with its command
   // line interface.
@@ -26,8 +25,8 @@ async function main() {
   await defxNFTFactory.initialize(defxNFT.address, 20);
   let MINT_ROLE = await defxNFT.MINT_ROLE();
   await defxNFT.grantRole( MINT_ROLE, defxNFTFactory.address);
-  console.log("DefxNFT deployed to:", defxNFTFactory.address);
-  console.log("DefxNFTFactory deployed to:", defxNFT.address);
+  console.log("DefxNFTFactory deployed to:", defxNFTFactory.address);
+  console.log("DefxNFT deployed to:", defxNFT.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
