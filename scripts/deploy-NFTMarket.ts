@@ -4,7 +4,7 @@
 // When running the script with `npx hardhat run <script>` you'll find the Hardhat
 // Runtime Environment's members available in the global scope.
 import { ethers} from 'hardhat'
-const nftAddress = "0xDF166dfB9c37EaD80A0C3FC48ee78e199E70AF8F";
+const nftAddress = "0x1207Ab8114CA69dA0c78D881B4Ca6a7716bf9353";
 const defxAddress = "0x9E0F035628Ce4F5e02ddd14dEa2F7bd92B2A9152";
 const admin ="0x9e59Ba0D8a31094e714614Fd456e9a6ABa6925fA";
 import { BigNumber } from 'ethers'
@@ -24,6 +24,7 @@ async function main() {
   await nftMarket.initialize(admin);
   await nftMarket.addSupportCurrency(defxAddress);
   await nftMarket.addSupportNft(nftAddress);
+  await nftMarket.addSupportNft("0xe45dfAb3d52c65212Be58E47e761a213d20a3494"); //盲盒
   console.log("NFTMarket deployed to:", nftMarket.address);
 }
 

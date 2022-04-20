@@ -4,7 +4,7 @@
 // When running the script with `npx hardhat run <script>` you'll find the Hardhat
 // Runtime Environment's members available in the global scope.
 import { ethers} from 'hardhat'
-const nftFactoryAddress = "0x429bd7860a45E928F9A52Cc32f891190b25c830d";
+const nftFactoryAddress = "0x8Fe97A7c1aDC4892df11c437f08eD29DC5ea4320";
 async function main() {
   // Hardhat always runs the compile task when running scripts with its command
   // line interface.

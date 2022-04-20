@@ -62,7 +62,7 @@ async function bnbLotteryStart() {
 }
 
 async function setDocinVal() {
-    let DCoinPricePredictionAddress = "0xb118e213c12C0a95466f6f7860191550522f9B38";
+    let DCoinPricePredictionAddress = "0x7967048f6F67d159C97180e806a39581f9e847d1";
     let dcoinPricePrediction = await ethers.getContractAt( "DCoinPricePrediction",DCoinPricePredictionAddress);
     await dcoinPricePrediction.setPricePredictionReward("0x95Ea06a66032C09A1De25326d0eeB5DE4f1B0e8f");
 }
@@ -97,7 +97,14 @@ async function addPool() {
     await pricePredictionReward.addPool(1000);
 }
 
-mintNFT()
+async function addSupportNft() {
+    let addr = "0x9f403180eb3d987bADA089163927BF0d2d423c3B";
+    let nftMarket = await ethers.getContractAt( "NFTMarket",addr);
+    await nftMarket.addSupportNft("0x1425401856048e01c53b3adCE86d3ee9919a7345");
+}
+
+
+setDocinVal()
   .then(() => process.exit(0))
   .catch((error) => {
     console.error(error);
