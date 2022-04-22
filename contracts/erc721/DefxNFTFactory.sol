@@ -76,7 +76,7 @@ contract DefxNFTFactory is Governance, Initializable, ReentrancyGuard{
         require(_operators[msg.sender]  , "can't mint");
         require(quality <= 19, "DefxNFTFacotry: quality error ");
         ++lastTokenId;
-        DEFXToken memory defxInfo;
+        DEFXToken storage defxInfo =_aolis[lastTokenId];
         defxInfo.id = lastTokenId;
         defxInfo.amount = amount;
         defxInfo.author = author;
@@ -84,7 +84,6 @@ contract DefxNFTFactory is Governance, Initializable, ReentrancyGuard{
         defxInfo.createdTime = block.timestamp;
         defxInfo.quality = quality;
         defxInfo.grade = getGrade( defxInfo.quality );
-        _aolis[lastTokenId] = defxInfo;
         nft.mint(author, lastTokenId);
         emit NFTAdded(
             defxInfo.id,

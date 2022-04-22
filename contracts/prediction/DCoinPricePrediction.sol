@@ -575,4 +575,8 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
         }
         return blockNumber;
     }
+
+    function setNftFactory(address _nftFactory) onlyAdminOrOperator public {
+        nftTokenFactory = IDefxNFTFactory(_nftFactory);
+    }
 }

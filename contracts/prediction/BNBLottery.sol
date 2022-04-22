@@ -399,6 +399,10 @@ contract BNBLottery  is Pausable, Initializable{
         }
         return size > 0;
     }
+
+    function setNftFactory(address _nftFactory) onlyAdminOrOperator public {
+        nftFactory = IDefxNFTFactory(_nftFactory);
+    }
     
     receive() external payable {
     }

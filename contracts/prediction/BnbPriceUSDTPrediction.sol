@@ -358,7 +358,7 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
             betInfo.nftTokenId = betInfo.nftTokenId = nftTokenFactory.doMint(msg.sender, getQuality(amount), betInfo.amount);
         }
         if(pricePredictionReward != address(0)) {
-            IPricePredictionReward(pricePredictionReward).deposit(2, tx.origin, amount);
+            IPricePredictionReward(pricePredictionReward).deposit(1, tx.origin, amount);
         }
         userRounds[msg.sender].push(currentEpoch);
         uint256 fee = betInfo.amount.mul(treasuryRate).div(TOTAL_RATE); 
