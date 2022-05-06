@@ -9,6 +9,8 @@ const nftFactoryAddress = "0x8Fe97A7c1aDC4892df11c437f08eD29DC5ea4320";
 const USDTAddress = "0x7ef95a0FEE0Dd31b22626fA2e10Ee6A223F8a684";
 const bnbOracle = "0x2514895c72f50D8bd4B4F9b1110F0D6bD2c97526";
 const admin = "0x5f9808b04Af758cDaa1C44430503fCEC61E91E02";
+const fragmentsToken = "0x621C2A012c3bbC3bF747785702452Bd180b71c5F";
+const shareAddress = "0x621C2A012c3bbC3bF747785702452Bd180b71c5F";
 import { BigNumber } from 'ethers'
 async function main() {
   // Hardhat always runs the compile task when running scripts with its command
@@ -22,11 +24,10 @@ async function main() {
   const BnbPriceUSDTPrediction = await ethers.getContractFactory("BnbPriceUSDTPrediction");
   const dcoinPricePrediction = await BnbPriceUSDTPrediction.deploy();
   await dcoinPricePrediction.deployed();
-  await dcoinPricePrediction.initialize(USDTAddress, bnbOracle,admin, admin, 100 ,20, 10, 100, 80, 20, 300, nftFactoryAddress);
+  await dcoinPricePrediction.initialize(USDTAddress, bnbOracle, admin, admin, 100 ,20, 10, 100, 80, 20, 300, fragmentsToken);
   console.log("Greeter deployed to:", dcoinPricePrediction.address);
   let defxNFTFactory = await ethers.getContractAt( "DefxNFTFactory", nftFactoryAddress);
   await defxNFTFactory.setOperator(dcoinPricePrediction.address, true);
-  
   console.info(dcoinPricePrediction.address)
 }
 

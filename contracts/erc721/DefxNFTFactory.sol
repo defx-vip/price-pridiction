@@ -116,7 +116,7 @@ contract DefxNFTFactory is Governance, Initializable, ReentrancyGuard{
 
 
     function getGrade(uint256 quality) public view returns (uint256){
-       
+
         return quality % _qualityBase + 1;
     }
 

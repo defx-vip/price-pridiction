@@ -69,7 +69,7 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
 
     uint256 public oracleUpdateAllowance; // seconds 允许价格相差的时间
 
-    uint256 public nftMinimumAmount = 10**18; //产生NFT最小投注数
+    uint256 public fragmentsAmountRate = 10**18; //产生碎片比率
 
     mapping(uint256 => Round) public rounds; //期权周期mapping, currentEpoch
 
@@ -77,7 +77,7 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
 
     mapping(address => uint256[]) public userRounds; //
 
-    IDefxNFTFactory public nftTokenFactory;
+    IERC20 public fragmentsToken;
 
     AggregatorV3Interface internal oracle; //预言机
 
@@ -140,7 +140,7 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
         uint256 _rewardRate,
         uint256 _treasuryRate,
         uint256 _oracleUpdateAllowance,
-        IDefxNFTFactory  _nftTokenFactory) public initializer {
+        address  _fragmentsToken) public initializer {
             oracle = _oracle;
             betToken = IERC20(_betToken);
             adminAddress = _adminAddress;
@@ -152,7 +152,7 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
             rewardRate = _rewardRate;
             treasuryRate = _treasuryRate;
             oracleUpdateAllowance = _oracleUpdateAllowance;
-            nftTokenFactory = _nftTokenFactory;        
+            fragmentsToken = IERC20(_fragmentsToken);        
     }
 
     /**
@@ -321,11 +321,12 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
         betInfo.position = Position.Bear;
         betInfo.amount = amount;
         betInfo.nftTokenId = 0;
-        if(amount >= nftMinimumAmount) {
-            betInfo.nftTokenId = betInfo.nftTokenId = nftTokenFactory.doMint(msg.sender, getQuality(amount), betInfo.amount);
+        uint256 fragmentsAmount = getFragmentsAmount(amount);
+        if(fragmentsAmount > 0) {
+            fragmentsToken.transfer(msg.sender, fragmentsAmount);
         }
         if(pricePredictionReward != address(0)) {
-            IPricePredictionReward(pricePredictionReward).deposit(2, tx.origin, amount);
+            IPricePredictionReward(pricePredictionReward).deposit(1, tx.origin, amount);
         }
         userRounds[msg.sender].push(currentEpoch);
         uint256 fee = betInfo.amount.mul(treasuryRate).div(TOTAL_RATE);
@@ -354,8 +355,9 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
         betInfo.position = Position.Bull;
         betInfo.amount = amount;
         betInfo.nftTokenId = 0;
-        if(amount >= nftMinimumAmount) {
-            betInfo.nftTokenId = betInfo.nftTokenId = nftTokenFactory.doMint(msg.sender, getQuality(amount), betInfo.amount);
+        uint256 fragmentsAmount = getFragmentsAmount(amount);
+        if(fragmentsAmount > 0) {
+            fragmentsToken.transfer(msg.sender, fragmentsAmount);
         }
         if(pricePredictionReward != address(0)) {
             IPricePredictionReward(pricePredictionReward).deposit(1, tx.origin, amount);
@@ -368,19 +370,8 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
         emit BetBull(msg.sender, currentEpoch, amount, betInfo.nftTokenId);
     }
 
-    function getQuality(uint256 amount) public pure returns (uint256 quality) {
-        require(amount > 0, "amount error");
-        if (amount < 1 * 10**18) return 9;
-        if (amount < 2 * 10**18) return 10;
-        if (amount < 3 * 10**18) return 11;
-        if (amount < 4 * 10**18) return 12;
-        if (amount < 5 * 10**18) return 13;
-        if (amount < 6 * 10**18) return 14;
-        if (amount < 7 * 10**18) return 15;
-        if (amount < 8 * 10**18) return 16;
-        if (amount < 9 * 10**18) return 17;
-        if (amount < 10 * 10**18) return 18;
-        if (amount >= 11 * 10**18) return 19;
+    function getFragmentsAmount(uint256 amount) public view returns (uint256 fragmentsAmount) {
+      fragmentsAmount = amount.div(fragmentsAmountRate).mul(10 ** 18);
     }
 
     /**
@@ -433,9 +424,8 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
         emit Unpause(currentEpoch);
     }
 
-    function setNftMinimumAmount(uint256 _nftMinimumAmount) external onlyAdminOrOperator {
-        require(_nftMinimumAmount < 10**18, "nftMinimumAmount error");
-        nftMinimumAmount = _nftMinimumAmount;
+   function setFragmentsAmountRate(uint256 _fragmentsAmountRate) external onlyAdminOrOperator {
+        fragmentsAmountRate = _fragmentsAmountRate;
     }
 
     function setPricePredictionReward(address _pricePredictionReward) external onlyAdmin {
@@ -646,5 +636,9 @@ contract BnbPriceUSDTPrediction is Ownable, Pausable,Initializable {
             return blockNumber - inBlock;
         }
         return blockNumber;
+    }
+
+    function setFragmentsToken(address _fragmentsToken) onlyAdminOrOperator public {
+        fragmentsToken = IERC20(_fragmentsToken);
     }
 }

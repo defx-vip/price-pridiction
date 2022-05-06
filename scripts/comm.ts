@@ -8,7 +8,7 @@ const bnbLotteryAddress = "0xf15549caaFf3504f3D5Bc4A566b33508E56b7b5e";
 
 async function nftFactorySetOperator() {
     let nftFactory = await ethers.getContractAt( "DefxNFTFactory", nftFactoryAddress);
-    await nftFactory.setOperator("0xf15549caaFf3504f3D5Bc4A566b33508E56b7b5e", true);
+    await nftFactory.setOperator("0x621C2A012c3bbC3bF747785702452Bd180b71c5F", true);
     console.info(`nftFactorySetOperator: ${add} 授权成功`);
 }
 
@@ -115,19 +115,32 @@ async function getUserInfo() {
 }
 
 async function setPredictionBonusSharePool() {
-    let bnbPriceUSDTPrediction = await ethers.getContractAt( "BnbPriceUSDTPrediction", "0xc0a10CF722b16D28aA963eD89f7DA915B63f4725");
+    let bnbPriceUSDTPrediction = await ethers.getContractAt( "BnbPriceUSDTPrediction", "0xBfc59228946C916c4425Af7dC3394613DD2650Df");
     let bonusSharePool = "0x2AAB2ACA4598893dc826191EAE01ff0099bAFA52";
-    await bnbPriceUSDTPrediction.setBonusSharePool(bonusSharePool);
+    //await bnbPriceUSDTPrediction.setBonusSharePool(bonusSharePool);
     await bnbPriceUSDTPrediction.approveToStakingAddress()
 }
+
 async function setSharerAddress() {
     let tokenBonusSharePool = await ethers.getContractAt( "TokenBonusSharePool", "0x2AAB2ACA4598893dc826191EAE01ff0099bAFA52");
     let owner = await tokenBonusSharePool.owner();
     console.info(owner)
-    await tokenBonusSharePool.setSharerAddress("0xc0a10CF722b16D28aA963eD89f7DA915B63f4725", true);
+    await tokenBonusSharePool.setSharerAddress("0xBfc59228946C916c4425Af7dC3394613DD2650Df", true);
+}
+async function getGuessInfo() {
+    let tokenBonusSharePool = await ethers.getContractAt( "PricePredictionReward", "0x95Ea06a66032C09A1De25326d0eeB5DE4f1B0e8f");
+    let pendingToken = await tokenBonusSharePool.pendingToken(1, "0x9e59Ba0D8a31094e714614Fd456e9a6ABa6925fA");
+    let bnbPriceUSDTPrediction = await ethers.getContractAt( "BnbPriceUSDTPrediction", "0xc0a10CF722b16D28aA963eD89f7DA915B63f4725");
+    //await bnbPriceUSDTPrediction.setPricePredictionReward("0x95Ea06a66032C09A1De25326d0eeB5DE4f1B0e8f");
+    let c = await bnbPriceUSDTPrediction.pricePredictionReward();
+    console.info(`a = ${pendingToken}`)
+}
+async function fragmentsTokenMint() {
+    let fragmentsToken = await ethers.getContractAt( "FragmentsToken", "0x621C2A012c3bbC3bF747785702452Bd180b71c5F");
+    await fragmentsToken.mint("0xBfc59228946C916c4425Af7dC3394613DD2650Df", BigNumber.from("100000000000000000000"));
 }
 
-setPredictionBonusSharePool()
+fragmentsTokenMint()
   .then(() => process.exit(0))
   .catch((error) => {
     console.error(error);

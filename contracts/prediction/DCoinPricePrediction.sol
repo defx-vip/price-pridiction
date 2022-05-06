@@ -54,11 +54,11 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
     uint256 public oracleLatestRoundId;
     uint256 public minBetAmount; //最小投资金额
     uint256 public oracleUpdateAllowance; // seconds 允许价格相差的时间
-    uint256 public nftMinimumAmount = 100 * 10**18; //产生NFT最小投注数
+    uint256 public fragmentsAmountRate = 10**18; //产生碎片比率
     mapping(uint256 => Round) public rounds; //期权周期mapping, currentEpoch
     mapping(uint256 => mapping(address => BetInfo)) public ledger; //期权周期=>用户下注详细
     mapping(address => uint256[]) public userRounds; //
-    IDefxNFTFactory public nftTokenFactory;
+    IERC20 public fragmentsToken;
     AggregatorV3Interface internal oracle; //预言机
     IERC20 public betToken;
     IUserBonus public userBonus;
@@ -105,7 +105,7 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
         uint256 _bufferBlocks,
         uint256 _minBetAmount,
         uint256 _oracleUpdateAllowance,
-        IDefxNFTFactory  _nftTokenFactory,
+        address  _fragmentsToken,
         address _userBonus
         ) public initializer {
             oracle = _oracle;
@@ -116,7 +116,7 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
             bufferBlocks = _bufferBlocks;
             minBetAmount = _minBetAmount;
             oracleUpdateAllowance = _oracleUpdateAllowance;
-            nftTokenFactory = _nftTokenFactory;
+            fragmentsToken = IERC20(_fragmentsToken);
             userBonus = IUserBonus(_userBonus);  
     }
 
@@ -271,8 +271,9 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
         if(address(userBonus) != address(0)) {
             userBonus.betting(msg.sender, amount);
         }
-        if(amount >= nftMinimumAmount) {
-            betInfo.nftTokenId = betInfo.nftTokenId = nftTokenFactory.doMint(msg.sender, getQuality(amount), betInfo.amount);
+        uint256 fragmentsAmount = getFragmentsAmount(amount);
+        if(fragmentsAmount > 0) {
+            fragmentsToken.transfer(msg.sender, fragmentsAmount);
         }
         if(pricePredictionReward != address(0)) {
             IPricePredictionReward(pricePredictionReward).deposit(0, msg.sender, amount);
@@ -303,8 +304,9 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
         if(address(userBonus) != address(0)) {
             userBonus.betting(msg.sender, amount);
         }
-        if(amount >= nftMinimumAmount) {
-            betInfo.nftTokenId = betInfo.nftTokenId = nftTokenFactory.doMint(msg.sender, getQuality(amount), betInfo.amount);
+        uint256 fragmentsAmount = getFragmentsAmount(amount);
+        if(fragmentsAmount > 0) {
+            fragmentsToken.transfer(msg.sender, fragmentsAmount);
         }
         if(pricePredictionReward != address(0)) {
             IPricePredictionReward(pricePredictionReward).deposit(0, msg.sender, amount);
@@ -313,18 +315,8 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
         emit BetBull(msg.sender, currentEpoch, amount, betInfo.nftTokenId);
     }
 
-    function getQuality(uint256 amount) public view returns (uint256 quality) {
-        require(amount >= nftMinimumAmount, "amount error");
-        if (amount < 10 * 10**18) return 0;
-        if (amount < 20 * 10**18) return 1;
-        if (amount < 30 * 10**18) return 2;
-        if (amount < 40 * 10**18) return 3;
-        if (amount < 50 * 10**18) return 4;
-        if (amount < 60 * 10**18) return 5;
-        if (amount < 70 * 10**18) return 6;
-        if (amount < 80 * 10**18) return 7;
-        if (amount < 90 * 10**18) return 8;
-        if (amount >= 100 * 10**18) return 9;
+    function getFragmentsAmount(uint256 amount) public view returns (uint256 fragmentsAmount) {
+      fragmentsAmount = amount.div(fragmentsAmountRate).mul(10 ** 18);
     }
     /**
      * 结算收益
@@ -376,9 +368,9 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
         emit Unpause(currentEpoch);
     }
 
-    function setNftMinimumAmount(uint256 _nftMinimumAmount) external onlyAdminOrOperator {
-        require(_nftMinimumAmount < 10 * 10**18, "nftMinimumAmount error");
-        nftMinimumAmount = _nftMinimumAmount;
+    function setFragmentsAmountRate(uint256 _fragmentsAmountRate) external onlyAdminOrOperator {
+     
+        fragmentsAmountRate = _fragmentsAmountRate;
     }
     /**
      * @dev Return round epochs that a user has participated
@@ -576,7 +568,7 @@ contract DCoinPricePrediction is Ownable, Pausable,Initializable {
         return blockNumber;
     }
 
-    function setNftFactory(address _nftFactory) onlyAdminOrOperator public {
-        nftTokenFactory = IDefxNFTFactory(_nftFactory);
+    function setFragmentsToken(address _fragmentsToken) onlyAdminOrOperator public {
+        fragmentsToken = IERC20(_fragmentsToken);
     }
 }

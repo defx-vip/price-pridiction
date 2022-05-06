@@ -18,9 +18,10 @@ import {MysteryBox} from '../../typechain/MysteryBox'
 import {NFTMarket} from '../../typechain/NFTMarket'
 import {PricePredictionReward} from '../../typechain/PricePredictionReward'
 import {DCoinPricePrediction} from '../../typechain/DCoinPricePrediction'
-export const TEST_POOL_START_TIME = 1601906400
+import {FragmentsToken} from '../../typechain/FragmentsToken'
 import { BigNumber, Wallet } from 'ethers'
 
+export const TEST_POOL_START_TIME = 1601906400
 
 interface DCoinTokenFixture {
     token: DCoinToken
@@ -274,6 +275,7 @@ interface DCoinPricePredictionFixture {
     dcoinToken: DCoinToken,
     nft: DefxNFT,
     nftFactory: DefxNFTFactory,
+    fragmentsToken: FragmentsToken,
     priceProviderMock: PriceProviderMock,
     dcoinPricePrediction:  DCoinPricePrediction 
 }
@@ -294,10 +296,28 @@ export async function dcoinPricePredictionFixture (): Promise<DCoinPricePredicti
     let priceProviderMock = priceProviderMockFix.priceProviderMock;
     const classType = await ethers.getContractFactory('DCoinPricePrediction')
     const dcoinPricePrediction = (await classType.deploy()) as DCoinPricePrediction;
+    let fragmentsTokenFixtureobj = await  fragmentsTokenFixture();
+    let fragmentsToken = fragmentsTokenFixtureobj.fragmentsToken;
 
     await dcoinPricePrediction.initialize(dcoinToken.address, priceProviderMock.address, owner.address, owner.address,
-        100, 20, 1, 10000, nftFactory.address, userBonus.address
+        100, 20, 1, 10000, fragmentsToken.address, userBonus.address
         )
     await userBonus.setAllownUpdateBets(dcoinPricePrediction.address, true);
-    return  { pricePredictionReward, dftToken, dcoinToken, nft, nftFactory ,priceProviderMock, dcoinPricePrediction }
+    return  { pricePredictionReward, dftToken, dcoinToken, nft, nftFactory , fragmentsToken, priceProviderMock, dcoinPricePrediction }
+}
+
+interface FragmentsTokenFixture {
+    nft: DefxNFT,
+    nftFactory: DefxNFTFactory,
+    fragmentsToken: FragmentsToken
+}
+
+export async function fragmentsTokenFixture (): Promise<FragmentsTokenFixture> { 
+    const [owner] = await ethers.getSigners();
+    let nftFacotryFixture = await defxNFTFactoryFixture();  
+    let nft = nftFacotryFixture.nft;
+    let nftFactory = nftFacotryFixture.nftFactory;
+    const classType = await ethers.getContractFactory('FragmentsToken')
+    const fragmentsToken = (await classType.deploy(nftFactory.address)) as FragmentsToken;
+    return {nft, nftFactory, fragmentsToken}
 }

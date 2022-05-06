@@ -6,6 +6,7 @@ import { DefxNFT } from '../typechain/DefxNFT'
 import { DefxNFTFactory } from '../typechain/DefxNFTFactory'
 import { IERC20 } from '../typechain/IERC20'
 import { DCoinToken } from '../typechain/DCoinToken'
+import { FragmentsToken } from '../typechain/FragmentsToken'
 import { DefxToken } from '../typechain/DefxToken'
 import { DCoinPricePrediction } from '../typechain/DCoinPricePrediction'
 import { PricePredictionReward } from '../typechain/PricePredictionReward'
@@ -21,6 +22,7 @@ describe("DefxNFTFactory", () => {
     let defxNFTFactory: DefxNFTFactory;
     let token1:DefxToken;
     let token2: DCoinToken;
+    let token3: FragmentsToken;
     let dcoinPricePrediction: DCoinPricePrediction;
     let pricePredictionReward: PricePredictionReward;
     before('create fixture loader', async () => {
@@ -38,10 +40,13 @@ describe("DefxNFTFactory", () => {
         pricePredictionReward = fixture.pricePredictionReward;
         token1 = fixture.dftToken;
         token2 = fixture.dcoinToken;
+        token3 = fixture.fragmentsToken;
         await defxNFTFactory.setOperator(dcoinPricePrediction.address, true)
         await dcoinPricePrediction.genesisStartRound();
-        await token2.mint(user.address, 1000000);
-        await token2.approve(dcoinPricePrediction.address, 10000000);
+        await token2.isExcludedFromFee(dcoinPricePrediction.address);
+        await token2.mint(user.address, "12000000000000000000");
+        await token2.approve(dcoinPricePrediction.address, "12000000000000000000");
+        await token3.mint(dcoinPricePrediction.address, "12000000000000000000");
         await pricePredictionReward.addPool(100);
         await dcoinPricePrediction.setPricePredictionReward(pricePredictionReward.address);
     });
@@ -50,9 +55,18 @@ describe("DefxNFTFactory", () => {
        
     })
 
-    it('bet one', async () => {
-        await dcoinPricePrediction.betBull(1000);
+    it('betBull one', async () => {
+        await dcoinPricePrediction.betBull("12000000000000000000");
+        let fragmentsTokenBalance = await token3.balanceOf(user.address);
+        console.info(`fragmentsTokenBalance = ${fragmentsTokenBalance}`);
     })
+
+    it('betBear one', async () => {
+        await dcoinPricePrediction.betBear("12000000000000000000");
+        let fragmentsTokenBalance = await token3.balanceOf(user.address);
+        console.info(`fragmentsTokenBalance = ${fragmentsTokenBalance}`);
+    })
+
 
     
 
